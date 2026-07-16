@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { LogOut, Sparkles, Smartphone, Camera, Users, ShieldAlert, Heart, Calendar, HelpCircle, Activity, Globe, RefreshCw, ChefHat, CreditCard, Search, Send, Sun, Moon } from "lucide-react";
 import { User, Child, Group, Employee, Complaint, AuditLog, Payment, MealPlan } from "./types";
 import LoginScreen from "./components/LoginScreen";
@@ -13,7 +13,51 @@ import ParentPortal from "./components/ParentPortal";
 import TelegramLinkModal from "./components/TelegramLinkModal";
 
 export default function App() {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem("currentUser");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem("currentUser", JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem("currentUser");
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    const originalFetch = window.fetch;
+    window.fetch = async (input, init) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      
+      if (url.includes('/api/')) {
+        const newInit = { ...(init || {}) };
+        const headers = new Headers(newInit.headers || {});
+        if (currentUser.kindergartenId && !headers.has('x-kindergarten-id')) {
+          headers.set('x-kindergarten-id', currentUser.kindergartenId);
+        }
+        newInit.headers = headers;
+        return originalFetch(input, newInit);
+      }
+      
+      return originalFetch(input, init);
+    };
+
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, [currentUser]);
+
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isTelegramModalOpen, setIsTelegramModalOpen] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<string>("");
@@ -145,37 +189,66 @@ export default function App() {
     setActiveSimulator("none");
   }, [currentUser]);
 
+  const lastFetchTimeRef = useRef<number>(0);
+
   // Load all data from API
   const loadAllData = async (manual = false) => {
+    // 1. Prevent background syncs when document is hidden (Visibility check)
+    if (!manual && document.visibilityState === "hidden") {
+      console.log("[SWR] Skipping loadAllData because page is hidden");
+      return;
+    }
+
+    const now = Date.now();
+    const timeSinceLastFetch = now - lastFetchTimeRef.current;
+
+    // 2. Rate-limiting / Stale-While-Revalidate check
+    // If it's not a manual sync and we fetched very recently (e.g. less than 2 seconds ago), skip to avoid spamming the backend/re-rendering
+    if (!manual && timeSinceLastFetch < 2000) {
+      console.log("[SWR] Skipping fetch, using stale data (throttled under 2s)");
+      return;
+    }
+
+    const isFirstLoad = children.length === 0 && employees.length === 0;
     if (manual) {
       setIsRefreshing(true);
-    } else {
+    } else if (isFirstLoad) {
       setLoadingData(true);
     }
+
+    lastFetchTimeRef.current = now;
+
     const kgId = currentUser?.kindergartenId || "";
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (kgId) {
       headers["x-kindergarten-id"] = kgId;
     }
-    try {
-      const [
-        resChildren,
-        resGroups,
-        resEmployees,
-        resComplaints,
-        resAudit,
-        resPayments,
-        resMeals,
-      ] = await Promise.all([
-        fetch(`/api/children?kindergartenId=${kgId}`, { headers }),
-        fetch(`/api/groups?kindergartenId=${kgId}`, { headers }),
-        fetch(`/api/employees?kindergartenId=${kgId}`, { headers }),
-        fetch(`/api/complaints?kindergartenId=${kgId}`, { headers }),
-        fetch(`/api/audit-logs?kindergartenId=${kgId}`, { headers }),
-        fetch(`/api/payments?kindergartenId=${kgId}`, { headers }),
-        fetch(`/api/meals?kindergartenId=${kgId}`, { headers }),
-      ]);
 
+    // Helper for resilient fetch to handle specific error codes (401, 403, 404, 500)
+    const resilientFetch = async (url: string, defaultValue: any = []) => {
+      try {
+        const res = await fetch(url, { headers });
+        if (!res.ok) {
+          console.warn(`[SWR] HTTP Error ${res.status} returned for: ${url}`);
+          if (res.status === 401) {
+            console.error("[SWR] Unauthorized (401) - session expired.");
+          } else if (res.status === 403) {
+            console.error("[SWR] Forbidden (403) - access restricted.");
+          } else if (res.status === 404) {
+            console.error("[SWR] Not Found (404) - API route doesn't exist.");
+          } else if (res.status >= 500) {
+            console.error(`[SWR] Server Error (${res.status}) - remote server issue.`);
+          }
+          return defaultValue;
+        }
+        return await res.json();
+      } catch (err) {
+        console.error(`[SWR] Fetch failed for ${url}:`, err);
+        return defaultValue;
+      }
+    };
+
+    try {
       const [
         dataChildren,
         dataGroups,
@@ -185,22 +258,22 @@ export default function App() {
         dataPayments,
         dataMeals,
       ] = await Promise.all([
-        resChildren.json(),
-        resGroups.json(),
-        resEmployees.json(),
-        resComplaints.json(),
-        resAudit.json(),
-        resPayments.json(),
-        resMeals.json(),
+        resilientFetch(`/api/children?kindergartenId=${kgId}`),
+        resilientFetch(`/api/groups?kindergartenId=${kgId}`),
+        resilientFetch(`/api/employees?kindergartenId=${kgId}`),
+        resilientFetch(`/api/complaints?kindergartenId=${kgId}`),
+        resilientFetch(`/api/audit-logs?kindergartenId=${kgId}`),
+        resilientFetch(`/api/payments?kindergartenId=${kgId}`),
+        resilientFetch(`/api/meals?kindergartenId=${kgId}`),
       ]);
 
-      setChildren(dataChildren);
-      setGroups(dataGroups);
-      setEmployees(dataEmployees);
-      setComplaints(dataComplaints);
-      setAuditLogs(dataAudit);
-      setPayments(dataPayments);
-      setMeals(dataMeals);
+      setChildren(dataChildren || []);
+      setGroups(dataGroups || []);
+      setEmployees(dataEmployees || []);
+      setComplaints(dataComplaints || []);
+      setAuditLogs(dataAudit || []);
+      setPayments(dataPayments || []);
+      setMeals(dataMeals || []);
       setLastSyncTime(new Date().toLocaleTimeString());
     } catch (err) {
       console.error("Xatolik ma'lumotlarni yuklashda:", err);
@@ -557,6 +630,7 @@ export default function App() {
                   complaintsList={complaints}
                   auditLogsList={auditLogs}
                   paymentsList={payments}
+                  mealsList={meals}
                   onRefresh={loadAllData}
                   onUpdateAvatar={(newAvatar: string) => setCurrentUser({ ...currentUser, avatar: newAvatar })}
                 />

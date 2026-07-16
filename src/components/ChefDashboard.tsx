@@ -113,6 +113,7 @@ export default function ChefDashboard({ user, mealsList, onRefresh }: ChefDashbo
   const [menuServingTime, setMenuServingTime] = useState("12:30");
   const [menuAgeGroup, setMenuAgeGroup] = useState("3-6 yosh");
   const [menuInstructions, setMenuInstructions] = useState("Qaynatib, pishgach ko'katlar bilan bezatiladi.");
+  const [menuImage, setMenuImage] = useState("https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&q=80&w=200");
 
   // Form states: Add Ingredient
   const [ingName, setIngName] = useState("");
@@ -322,7 +323,8 @@ export default function ChefDashboard({ user, mealsList, onRefresh }: ChefDashbo
         cookingInstructions: menuInstructions,
         portionSize: menuPortionSize,
         servingTime: menuServingTime,
-        ageGroup: menuAgeGroup
+        ageGroup: menuAgeGroup,
+        image: menuImage
       };
 
       const res = await fetch("/api/menus", {
@@ -1185,6 +1187,39 @@ export default function ChefDashboard({ user, mealsList, onRefresh }: ChefDashbo
                   onChange={(e) => setMenuAllergens(e.target.value)}
                   placeholder="G'alla, tuxum, sut yoki yo'q"
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white outline-none"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-slate-400 font-bold block">Taom Rasmi (Rasm tanlang yoki URL kiriting):</span>
+                <div className="grid grid-cols-6 gap-2">
+                  {[
+                    { id: "porridge", url: "https://images.unsplash.com/photo-1517433367423-c7e5b0f35086?auto=format&fit=crop&q=80&w=300", label: "Bo'tqa" },
+                    { id: "soup", url: "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&q=80&w=300", label: "Sho'rva" },
+                    { id: "salad", url: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=300", label: "Salat" },
+                    { id: "rice", url: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=300", label: "Osh" },
+                    { id: "fruit", url: "https://images.unsplash.com/photo-1579372786545-d24232daf58c?auto=format&fit=crop&q=80&w=300", label: "Meva" },
+                    { id: "pasta", url: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=300", label: "Issiq taom" }
+                  ].map((img) => (
+                    <button
+                      key={img.id}
+                      type="button"
+                      onClick={() => setMenuImage(img.url)}
+                      className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                        menuImage === img.url ? "border-emerald-500 scale-105" : "border-slate-800 hover:border-slate-600"
+                      }`}
+                    >
+                      <img src={img.url} alt={img.label} className="w-full h-full object-cover" />
+                      <div className="absolute inset-x-0 bottom-0 bg-black/60 text-[8px] text-white py-0.5 text-center truncate">{img.label}</div>
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  placeholder="Yoki maxsus rasm URL manzili..."
+                  value={menuImage}
+                  onChange={(e) => setMenuImage(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-xl p-2 text-[10px] text-white outline-none font-mono"
                 />
               </div>
 

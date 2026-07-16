@@ -6,7 +6,7 @@ import {
   Settings, Bell, HelpCircle, Award, Heart, LayoutDashboard, 
   Send, Moon, LogOut, Clock, BookOpen, Smile, Key, Book, 
   Briefcase, ShoppingCart, Apple, Download, ShieldCheck, Eye, EyeOff, Building, Server, Cpu,
-  Sparkles, Brain, ChevronLeft, ChevronRight, SlidersHorizontal, Zap, PlusCircle
+  Sparkles, Brain, ChevronLeft, ChevronRight, SlidersHorizontal, Zap, PlusCircle, ChefHat
 } from "lucide-react";
 import { 
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
@@ -27,6 +27,7 @@ interface DirectorDashboardProps {
   complaintsList: Complaint[];
   auditLogsList: AuditLog[];
   paymentsList: Payment[];
+  mealsList?: any[];
   onRefresh: () => void;
   onUpdateAvatar?: (avatar: string) => void;
 }
@@ -39,6 +40,7 @@ export default function DirectorDashboard({
   complaintsList: rawComplaintsList,
   auditLogsList: rawAuditLogsList,
   paymentsList: rawPaymentsList,
+  mealsList = [],
   onRefresh,
   onUpdateAvatar,
 }: DirectorDashboardProps) {
@@ -908,6 +910,7 @@ export default function DirectorDashboard({
   const [empPass, setEmpPass] = useState("admin135@");
   const [empRole, setEmpRole] = useState<"Tarbiyachi" | "Oshpaz" | "Hamshira" | "Buxgalter" | "Tozalovchi">("Tarbiyachi");
   const [empPhone, setEmpPhone] = useState("+998");
+  const [addEmpError, setAddEmpError] = useState<string | null>(null);
 
   // Director webcam photo upload / snapshot states
   const [childPhoto, setChildPhoto] = useState<string | null>(null);
@@ -1264,10 +1267,19 @@ export default function DirectorDashboard({
     e.preventDefault();
     if (!empName || !empUser || !empPass || !empPhone) return;
 
+    setAddEmpError(null);
+
+    const reqHeaders: Record<string, string> = { 
+      "Content-Type": "application/json" 
+    };
+    if (user.kindergartenId) {
+      reqHeaders["x-kindergarten-id"] = user.kindergartenId;
+    }
+
     try {
       const res = await fetch("/api/employees", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: reqHeaders,
         body: JSON.stringify({
           name: empName,
           username: empUser,
@@ -1283,6 +1295,7 @@ export default function DirectorDashboard({
         }),
       });
       if (res.ok) {
+        setAddEmpError(null);
         setShowAddEmpModal(false);
         setEmpName("");
         setEmpUser("");
@@ -1299,9 +1312,13 @@ export default function DirectorDashboard({
           user.kindergartenId
         );
         triggerNotification("Yangi xodim muvaffaqiyatli ro'yxatga olindi!");
+      } else {
+        const data = await res.json();
+        setAddEmpError(data.error || data.message || "Xatolik yuz berdi (400 Bad Request)!");
       }
     } catch (err) {
       console.error(err);
+      setAddEmpError("Tarmoq xatoligi yoki server bilan ulanib bo'lmadi.");
     }
   };
 
@@ -3001,6 +3018,113 @@ export default function DirectorDashboard({
                   <span className="text-[10px] text-slate-400">Tahlil yakuni</span>
                 </div>
               </div>
+
+              {/* TODAY'S MEAL PLAN COMPONENT */}
+              {(() => {
+                const todayStr = new Date().toISOString().split("T")[0]; // e.g. "2026-07-16"
+                
+                // Find today's meal plan for the current selected kindergarten
+                const todayMealPlan = mealsList.find((m: any) => {
+                  const matchesDate = m.date === todayStr;
+                  const targetKg = selectedKindergartenId === "all" ? "K-1" : selectedKindergartenId;
+                  return matchesDate && m.kindergartenId === targetKg;
+                });
+
+                // Get categories of meals
+                const mealCategories = todayMealPlan ? [
+                  { type: "Nonushta (Breakfast)", detail: todayMealPlan.breakfast, color: "text-amber-400", defaultImg: "https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?auto=format&fit=crop&q=80&w=300" },
+                  { type: "Ertalabki gazak (Morning Snack)", detail: todayMealPlan.morningSnack, color: "text-blue-400", defaultImg: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=300" },
+                  { type: "Tushlik (Lunch)", detail: todayMealPlan.lunch, color: "text-emerald-400", defaultImg: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=300" },
+                  { type: "Snack (Afternoon Snack)", detail: todayMealPlan.afternoonSnack, color: "text-purple-400", defaultImg: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?auto=format&fit=crop&q=80&w=300" },
+                  { type: "Kechki ovqat (Dinner)", detail: todayMealPlan.dinner, color: "text-orange-400", defaultImg: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&q=80&w=300" }
+                ].filter(cat => cat.detail && cat.detail.title) : [];
+
+                return (
+                  <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-4 animate-fade-in">
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-slate-800 pb-3">
+                      <div>
+                        <span className="text-[10px] font-black text-amber-500 uppercase tracking-wider block">🍽 Oshxona va Taomnoma</span>
+                        <h3 className="text-white font-black text-sm uppercase tracking-wider">Bugungi Taomnoma (Today's Meal Plan)</h3>
+                        <p className="text-[11px] text-slate-400">
+                          {todayStr} kuni uchun {selectedKindergartenId === "all" ? "Asosiy filial" : "Sizning filial"} bugungi taomnomasi va ozuqaviy qiymati
+                        </p>
+                      </div>
+                      <span className="text-[10px] bg-slate-950 border border-slate-800 text-slate-300 font-mono px-3 py-1.5 rounded-xl font-bold">
+                        📅 Bugun: {todayStr}
+                      </span>
+                    </div>
+
+                    {!todayMealPlan || mealCategories.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-8 text-center space-y-2 bg-slate-950/40 rounded-2xl border border-slate-850">
+                        <ChefHat className="w-8 h-8 text-slate-600 animate-bounce" />
+                        <p className="text-xs text-slate-400 font-medium">Bugun uchun taomnoma hali to'liq yuklanmagan.</p>
+                        <p className="text-[10px] text-slate-500">Oshpazlar paneli orqali yangi taomnoma rejasini kiritishingiz mumkin.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                        {mealCategories.map((meal, idx) => (
+                          <div key={idx} className="bg-slate-950 border border-slate-850 rounded-2xl p-3.5 flex flex-col justify-between space-y-3 hover:border-slate-700 transition-all group">
+                            <div className="space-y-2.5">
+                              <div className="aspect-video w-full rounded-xl overflow-hidden bg-slate-900 border border-slate-800 relative">
+                                <img 
+                                  src={meal.detail.image || meal.defaultImg} 
+                                  alt={meal.detail.title} 
+                                  referrerPolicy="no-referrer"
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                                />
+                                <div className="absolute top-1.5 left-1.5 bg-black/80 px-2 py-0.5 rounded text-[8px] font-black text-white uppercase tracking-wider">
+                                  {meal.type.split(" ")[0]}
+                                </div>
+                              </div>
+
+                              <div>
+                                <span className={`text-[9px] font-black uppercase tracking-wider ${meal.color}`}>
+                                  {meal.type}
+                                </span>
+                                <h4 className="text-white font-bold text-xs mt-0.5 leading-tight">{meal.detail.title}</h4>
+                              </div>
+
+                              <div className="grid grid-cols-4 gap-1 bg-slate-900/60 p-1.5 rounded-lg border border-slate-900 text-center text-[9px]">
+                                <div>
+                                  <span className="text-slate-500 block text-[7px] uppercase">Kcal</span>
+                                  <strong className="text-white font-mono">{meal.detail.calories || 350}</strong>
+                                </div>
+                                <div>
+                                  <span className="text-slate-500 block text-[7px] uppercase">Oqsil</span>
+                                  <strong className="text-white font-mono">{meal.detail.protein || 12}g</strong>
+                                </div>
+                                <div>
+                                  <span className="text-slate-500 block text-[7px] uppercase">Yog'</span>
+                                  <strong className="text-white font-mono">{meal.detail.fat || 8}g</strong>
+                                </div>
+                                <div>
+                                  <span className="text-slate-500 block text-[7px] uppercase">Ugl.</span>
+                                  <strong className="text-white font-mono">{meal.detail.carb || 45}g</strong>
+                                </div>
+                              </div>
+
+                              {(meal.detail.vitamins || meal.detail.minerals) && (
+                                <p className="text-[9px] text-slate-400 leading-relaxed bg-slate-900/30 p-2 rounded-lg border border-slate-900">
+                                  🍎 <strong className="text-slate-300">Tarkib:</strong> {meal.detail.vitamins ? `Vits: ${meal.detail.vitamins}` : ""} {meal.detail.minerals ? `• Mins: ${meal.detail.minerals}` : ""}
+                                </p>
+                              )}
+                            </div>
+
+                            {meal.detail.aiComment && (
+                              <div className="pt-2 border-t border-slate-900/80">
+                                <span className="text-[8px] text-emerald-400 font-black uppercase block tracking-wider">🤖 AI Nutri-tavsiya:</span>
+                                <p className="text-[9px] text-slate-400 italic leading-relaxed mt-0.5">
+                                  {meal.detail.aiComment}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Weekly Attendance Trends Recharts Chart */}
               <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-4 animate-fade-in">
@@ -4910,34 +5034,139 @@ export default function DirectorDashboard({
 
           {/* 10. KITCHEN COMPONENT */}
           {activeTab === "kitchen" && (
-            <div className="space-y-4">
-              <h3 className="text-white font-black text-sm uppercase tracking-wider">Taomnoma va Oziq-ovqat ombori</h3>
-              <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-4 text-xs">
+            <div className="space-y-4 animate-fade-in">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
                 <div>
-                  <h4 className="text-white font-bold text-sm">Bugun tayyorlanadigan taomlar</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-2">
-                    <div className="p-3 bg-slate-950 rounded-xl">
-                      <span className="text-orange-400 font-bold">Nonushta</span>
-                      <p className="text-white font-bold mt-1">Manna bo'tqasi, choy, pishloqli non</p>
-                    </div>
-                    <div className="p-3 bg-slate-950 rounded-xl">
-                      <span className="text-orange-400 font-bold">Tushlik</span>
-                      <p className="text-white font-bold mt-1">Karam sho'rva, qovurma somsa, meva sharbati</p>
-                    </div>
-                    <div className="p-3 bg-slate-950 rounded-xl">
-                      <span className="text-orange-400 font-bold">Kechki ovqat</span>
-                      <p className="text-white font-bold mt-1">Osh yoki mastava, limonli choy</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-4 bg-slate-950 rounded-xl border border-slate-850">
-                  <span className="text-emerald-400 font-bold uppercase text-[10px]">🤖 AI Oziqlanish hisoboti (Nutrition):</span>
-                  <p className="text-slate-300 mt-1 leading-relaxed">
-                    Bugungi taomlar oqsillar (42gr), uglevodlar (185gr) va sog'lom yog'larga juda boy. Bolalarning energetik rivojlanishiga 100% mos keladi.
+                  <h3 className="text-white font-black text-sm uppercase tracking-wider">Kunlik Taomnomalar Monitoringi</h3>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {user.role === "SuperAdmin" 
+                      ? "Oshpazlar tomonidan yuklangan har kunlik taomlar va ularning fotosuratlari real vaqtda." 
+                      : "Sizning bog'changiz uchun bugun va yaqin kunlar uchun belgilangan taomlar."}
                   </p>
                 </div>
+                <div className="bg-slate-950 border border-slate-850 px-2.5 py-1 rounded-full text-[10px] text-slate-400 font-mono flex items-center gap-1.5 self-start sm:self-center">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Real-time oshpaz paneli bilan bog'langan
+                </div>
               </div>
+
+              {(() => {
+                const filteredMeals = mealsList.filter((m: any) => {
+                  if (user.role === "SuperAdmin") return true;
+                  return m.kindergartenId === user.kindergartenId;
+                });
+                const sortedMeals = [...filteredMeals].sort((a, b) => b.date.localeCompare(a.date));
+
+                if (sortedMeals.length === 0) {
+                  return (
+                    <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl text-center text-slate-400 text-xs">
+                      <p className="italic">Hozircha oshpazlar tomonidan hech qanday taomnoma yuklanmagan.</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-6">
+                    {sortedMeals.map((mealPlan: any, planIdx: number) => {
+                      const kgName = kindergartens.find((k) => k.id === mealPlan.kindergartenId)?.name || `Filial: ${mealPlan.kindergartenId}`;
+                      
+                      const mealsExist = [
+                        { type: "Nonushta (Breakfast)", detail: mealPlan.breakfast, color: "text-amber-400" },
+                        { type: "Ertalabki gazak (Morning Snack)", detail: mealPlan.morningSnack, color: "text-blue-400" },
+                        { type: "Tushlik (Lunch)", detail: mealPlan.lunch, color: "text-emerald-400" },
+                        { type: "Snack (Afternoon Snack)", detail: mealPlan.afternoonSnack, color: "text-purple-400" },
+                        { type: "Kechki ovqat (Dinner)", detail: mealPlan.dinner, color: "text-orange-400" }
+                      ].filter(m => m.detail && m.detail.title);
+
+                      return (
+                        <div key={planIdx} className="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-4 shadow-lg hover:border-slate-700 transition-colors">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                            <div className="flex items-center gap-3">
+                              <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-mono font-bold px-2.5 py-1 rounded-full border border-emerald-500/20">
+                                📅 {mealPlan.date}
+                              </span>
+                              {user.role === "SuperAdmin" && (
+                                <span className="bg-orange-500/10 text-orange-400 text-[10px] font-bold px-2.5 py-1 rounded-full border border-orange-500/20">
+                                  🏫 {kgName}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-medium">
+                              Jami {mealsExist.length} ta taom kiritilgan
+                            </span>
+                          </div>
+
+                          {mealsExist.length === 0 ? (
+                            <p className="text-xs text-slate-500 italic py-2">Ushbu kunga taomlar hali to'liq kiritilmagan.</p>
+                          ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                              {mealsExist.map((meal, itemIdx) => (
+                                <div key={itemIdx} className="bg-slate-950 border border-slate-850 p-4 rounded-2xl flex flex-col justify-between space-y-3">
+                                  <div className="space-y-2.5">
+                                    {meal.detail.image && (
+                                      <div className="aspect-video w-full rounded-xl overflow-hidden bg-slate-900 border border-slate-800 relative">
+                                        <img 
+                                          src={meal.detail.image} 
+                                          alt={meal.detail.title} 
+                                          referrerPolicy="no-referrer"
+                                          className="w-full h-full object-cover" 
+                                        />
+                                        <div className="absolute top-2 left-2 bg-black/70 px-2 py-0.5 rounded text-[9px] font-black text-white uppercase tracking-wider">
+                                          {meal.type.split(" ")[0]}
+                                        </div>
+                                      </div>
+                                    )}
+                                    <div>
+                                      <span className={`text-[10px] font-black uppercase tracking-wider ${meal.color}`}>
+                                        {meal.type}
+                                      </span>
+                                      <h4 className="text-white font-black text-sm mt-0.5">{meal.detail.title}</h4>
+                                    </div>
+
+                                    <div className="grid grid-cols-4 gap-1 bg-slate-900/50 p-1.5 rounded-lg border border-slate-900 text-center text-[10px]">
+                                      <div>
+                                        <span className="text-slate-500 block text-[8px] uppercase">Kcal</span>
+                                        <strong className="text-white font-mono">{meal.detail.calories || 350}</strong>
+                                      </div>
+                                      <div>
+                                        <span className="text-slate-500 block text-[8px] uppercase">Oqsil</span>
+                                        <strong className="text-white font-mono">{meal.detail.protein || 12}g</strong>
+                                      </div>
+                                      <div>
+                                        <span className="text-slate-500 block text-[8px] uppercase">Yog'</span>
+                                        <strong className="text-white font-mono">{meal.detail.fat || 8}g</strong>
+                                      </div>
+                                      <div>
+                                        <span className="text-slate-500 block text-[8px] uppercase">Ugl.</span>
+                                        <strong className="text-white font-mono">{meal.detail.carb || 45}g</strong>
+                                      </div>
+                                    </div>
+
+                                    {(meal.detail.vitamins || meal.detail.minerals) && (
+                                      <p className="text-[10px] text-slate-400 leading-relaxed bg-slate-900/20 p-2 rounded-lg border border-slate-900">
+                                        ✨ <strong className="text-slate-300">Tarkib:</strong> {meal.detail.vitamins && `Vits: ${meal.detail.vitamins}`} {meal.detail.minerals && `• Mins: ${meal.detail.minerals}`}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  {meal.detail.aiComment && (
+                                    <div className="mt-2 pt-2 border-t border-slate-900">
+                                      <span className="text-[9px] text-emerald-400 font-bold uppercase block">🤖 AI Nutri-tavsiya:</span>
+                                      <p className="text-[10px] text-slate-300 italic leading-relaxed mt-0.5">
+                                        {meal.detail.aiComment}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
           )}
 
@@ -6285,6 +6514,12 @@ export default function DirectorDashboard({
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {addEmpError && (
+              <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-3 rounded-xl font-bold text-xs">
+                ⚠️ {addEmpError}
+              </div>
+            )}
 
             <form onSubmit={handleAddEmp} className="space-y-4 text-xs">
               <div className="space-y-1">

@@ -8,25 +8,11 @@ import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import http from "http";
 import { WebSocketServer, WebSocket } from "ws";
+import app from "./app";
 
 dotenv.config();
 
-const app = express();
 const PORT = 3000;
-
-// CORS & REQUEST DEBUGGING MIDDLEWARE
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization", "x-telegram-init-data"],
-  exposedHeaders: ["Content-Length", "Content-Range"],
-  credentials: true
-}));
-
-app.use((req, res, next) => {
-  console.log(`[BACKEND REQUEST] Method: ${req.method} | Path: ${req.path} | Origin: ${req.headers.origin || 'none'}`);
-  next();
-});
 
 app.use(express.json());
 
@@ -713,13 +699,15 @@ function getKgId(req: any): string {
 
 // Data validation layer for schema consistency & required field checks
 function validateKindergartenData(req: any, res: any, next: any) {
-  const kgId = getKgId(req);
+  let kgId = getKgId(req);
   
-  if (!kgId || typeof kgId !== "string" || kgId.trim() === "") {
-    return res.status(400).json({ 
-      success: false, 
-      error: "Kindergarten ID majburiy! Kindergarten ID verification failed." 
-    });
+  // If the kgId is "all", or not provided, gracefully default to the first available kindergarten ID
+  if (!kgId || typeof kgId !== "string" || kgId.trim() === "" || kgId === "all") {
+    kgId = kindergartens[0]?.id || "K-1";
+    req.headers["x-kindergarten-id"] = kgId;
+    if (req.body) {
+      req.body.kindergartenId = kgId;
+    }
   }
 
   const kgExists = kindergartens.some(k => k.id === kgId);
@@ -742,11 +730,38 @@ function validateKindergartenData(req: any, res: any, next: any) {
         return res.status(400).json({ success: false, error: "Ota-ona telefon raqami (parentPhone) majburiy!" });
       }
     } else if (path.includes("/employees")) {
-      if (req.method === "POST" && (!body.name || typeof body.name !== "string" || body.name.trim() === "")) {
-        return res.status(400).json({ success: false, error: "Xodim ismi-familiyasi (name) majburiy!" });
-      }
-      if (req.method === "POST" && (!body.role || typeof body.role !== "string" || body.role.trim() === "")) {
-        return res.status(400).json({ success: false, error: "Xodim lavozimi (role) majburiy!" });
+      if (req.method === "POST") {
+        if (!body.name || typeof body.name !== "string" || body.name.trim() === "") {
+          return res.status(400).json({ success: false, error: "Xodim ismi-familiyasi (name) majburiy!" });
+        }
+        if (!body.role || typeof body.role !== "string" || body.role.trim() === "") {
+          return res.status(400).json({ success: false, error: "Xodim lavozimi (role) majburiy!" });
+        }
+        if (!body.username || typeof body.username !== "string" || body.username.trim() === "") {
+          return res.status(400).json({ success: false, error: "Xodim logini (username) majburiy!" });
+        }
+        const isUsernameTaken = employees.some(e => e.username.toLowerCase() === body.username.toLowerCase());
+        if (isUsernameTaken) {
+          return res.status(400).json({ success: false, error: "Ushbu login (username) allaqachon band qilingan!" });
+        }
+      } else if (req.method === "PUT") {
+        if (body.name !== undefined && (typeof body.name !== "string" || body.name.trim() === "")) {
+          return res.status(400).json({ success: false, error: "Xodim ismi-familiyasi xato formatda!" });
+        }
+        if (body.role !== undefined && (typeof body.role !== "string" || body.role.trim() === "")) {
+          return res.status(400).json({ success: false, error: "Xodim lavozimi xato formatda!" });
+        }
+        if (body.username !== undefined) {
+          if (typeof body.username !== "string" || body.username.trim() === "") {
+            return res.status(400).json({ success: false, error: "Xodim logini xato formatda!" });
+          }
+          // Exclude current employee by checking path params (req.params.id)
+          const empId = req.params.id;
+          const isUsernameTaken = employees.some(e => e.id !== empId && e.username.toLowerCase() === body.username.toLowerCase());
+          if (isUsernameTaken) {
+            return res.status(400).json({ success: false, error: "Ushbu login (username) allaqachon band qilingan!" });
+          }
+        }
       }
     } else if (path.includes("/groups")) {
       if (req.method === "POST" && (!body.name || typeof body.name !== "string" || body.name.trim() === "")) {
@@ -1102,7 +1117,7 @@ app.post("/api/employees", validateKindergartenData, (req, res) => {
   res.json({ success: true, employee: newEmp });
 });
 
-app.put("/api/employees/:id", (req, res) => {
+app.put("/api/employees/:id", validateKindergartenData, (req, res) => {
   const idx = employees.findIndex(e => e.id === req.params.id);
   if (idx === -1) return res.status(404).json({ success: false, message: "Xodim topilmadi!" });
 
@@ -2189,18 +2204,24 @@ app.post("/api/activities", (req, res) => {
 
 // MEALS, MENUS & KITCHEN KMS ENDPOINTS
 app.get("/api/meals", (req, res) => {
+  const kgIdHeader = req.headers["x-kindergarten-id"];
+  if (kgIdHeader) {
+    return res.json(mealPlans.filter(m => m.kindergartenId === kgIdHeader));
+  }
   res.json(mealPlans);
 });
 
 app.post("/api/meals", (req, res) => {
+  const kgId = getKgId(req) || "K-1";
   const { date, breakfast, lunch, dinner, morningSnack, afternoonSnack } = req.body;
   const targetDate = date || new Date().toISOString().split("T")[0];
-  const idx = mealPlans.findIndex(m => m.date === targetDate);
+  const idx = mealPlans.findIndex(m => m.date === targetDate && m.kindergartenId === kgId);
 
   const defaultDetail: MealDetail = { title: "", calories: 0, protein: 0, fat: 0, carb: 0, vitamins: "", minerals: "", image: "", aiComment: "" };
 
   const payload: any = {
     date: targetDate,
+    kindergartenId: kgId,
     breakfast: breakfast || (idx !== -1 ? mealPlans[idx].breakfast : defaultDetail),
     lunch: lunch || (idx !== -1 ? mealPlans[idx].lunch : defaultDetail),
     dinner: dinner || (idx !== -1 ? mealPlans[idx].dinner : defaultDetail),
@@ -2216,7 +2237,7 @@ app.post("/api/meals", (req, res) => {
 
   // Auto-send custom notification to parents if they are subscribed via Telegram Bot
   children.forEach(child => {
-    if (child.telegramChatId) {
+    if (child.telegramChatId && child.kindergartenId === kgId) {
       sendTelegramMessage(child.telegramChatId, `🍽️ *Bugungi Yangi Taomnoma Taomlari (Sana: ${targetDate})!*\n\n🍳 *Nonushta:* ${payload.breakfast.title} (${payload.breakfast.calories} kcal)\n🍎 *Morning Snack:* ${payload.morningSnack?.title || "Meva va sharbat"}\n🍜 *Tushlik:* ${payload.lunch.title} (${payload.lunch.calories} kcal)\n🍰 *Peshindan keyingi bodroq:* ${payload.afternoonSnack?.title || "Kek va sut"}\n🍲 *Kechki ovqat:* ${payload.dinner.title} (${payload.dinner.calories} kcal)\n\n🤖 *AI Parhezshunos tavsiyasi:* ${payload.lunch.aiComment || "Bolalar uchun to'yimli va sog'lom taomlar!"}`);
     }
   });
@@ -2236,19 +2257,25 @@ app.post("/api/meals", (req, res) => {
 
 // Alias GET /api/menus
 app.get("/api/menus", (req, res) => {
+  const kgIdHeader = req.headers["x-kindergarten-id"];
+  if (kgIdHeader) {
+    return res.json(mealPlans.filter(m => m.kindergartenId === kgIdHeader));
+  }
   res.json(mealPlans);
 });
 
 // Alias POST /api/menus
 app.post("/api/menus", (req, res) => {
-  const { date, mealType, mealName, calories, protein, fat, carb, vitamins, minerals, allergens, cookingInstructions, portionSize, servingTime, ageGroup } = req.body;
+  const kgId = getKgId(req) || "K-1";
+  const { date, mealType, mealName, calories, protein, fat, carb, vitamins, minerals, allergens, cookingInstructions, portionSize, servingTime, ageGroup, image } = req.body;
   const targetDate = date || new Date().toISOString().split("T")[0];
-  const idx = mealPlans.findIndex(m => m.date === targetDate);
+  const idx = mealPlans.findIndex(m => m.date === targetDate && m.kindergartenId === kgId);
 
   const defaultDetail: MealDetail = { title: "", calories: 0, protein: 0, fat: 0, carb: 0, vitamins: "", minerals: "", image: "", aiComment: "" };
   
   let currentPlan: any = idx !== -1 ? mealPlans[idx] : {
     date: targetDate,
+    kindergartenId: kgId,
     breakfast: { ...defaultDetail },
     lunch: { ...defaultDetail },
     dinner: { ...defaultDetail },
@@ -2264,7 +2291,7 @@ app.post("/api/menus", (req, res) => {
     carb: Number(carb) || 45,
     vitamins: vitamins || "A, C",
     minerals: minerals || "Kaltsiy",
-    image: "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&q=80&w=200",
+    image: image || "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&q=80&w=200",
     aiComment: `AI: Ushbu taom yosh guruhiga juda mos keladi. Tarkibida ${allergens || 'allergenlar yo\'q'}.`
   };
 
