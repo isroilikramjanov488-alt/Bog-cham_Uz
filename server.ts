@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
@@ -14,18 +15,16 @@ const app = express();
 const PORT = 3000;
 
 // CORS & REQUEST DEBUGGING MIDDLEWARE
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization", "x-telegram-init-data"],
+  exposedHeaders: ["Content-Length", "Content-Range"],
+  credentials: true
+}));
+
 app.use((req, res, next) => {
-  console.log(`[BACKEND REQUEST] ${req.method} ${req.originalUrl} | Origin: ${req.headers.origin || 'none'} | Host: ${req.headers.host}`);
-  
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-telegram-init-data");
-  res.setHeader("Access-Control-Expose-Headers", "Content-Length, Content-Range");
-  
-  if (req.method === "OPTIONS") {
-    console.log(`[CORS Preflight OPTIONS] Handled OPTIONS request for ${req.originalUrl}`);
-    return res.sendStatus(200);
-  }
+  console.log(`[BACKEND REQUEST] Method: ${req.method} | Path: ${req.path} | Origin: ${req.headers.origin || 'none'}`);
   next();
 });
 
@@ -4606,10 +4605,10 @@ async function startServer() {
 
   // API Route Fallback (404 for unmatched API requests)
   app.use("/api/*", (req, res) => {
-    console.warn(`[BACKEND API 404] Route not found: ${req.method} ${req.originalUrl}`);
+    console.warn(`[BACKEND API 404] Route not found: ${req.method} ${req.path} (Original: ${req.originalUrl}) | Origin: ${req.headers.origin || "none"}`);
     res.status(404).json({
       success: false,
-      message: `API route not found: ${req.method} ${req.originalUrl}`
+      message: `API route not found: ${req.method} ${req.path}`
     });
   });
 
