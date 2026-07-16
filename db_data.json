@@ -32,12 +32,12 @@
       "id": "ATT-634540",
       "childId": "E-1",
       "date": "2026-07-16",
-      "checkIn": "07:10",
+      "checkIn": "07:21",
       "checkOut": null,
       "status": "Keldi",
       "reason": null,
       "deviceIp": "192.168.1.221",
-      "temperature": 36.6
+      "temperature": 36.9
     }
   ],
   "mealPlans": [],
@@ -50,6 +50,406 @@
   "complaints": [],
   "publicAnnouncements": [],
   "auditLogs": [
+    {
+      "id": "LOG-1784186509400",
+      "timestamp": "7/16/2026 07:21:49",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:21 da Keldi deb belgilandi. Harorat: 36.9°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186501398",
+      "timestamp": "7/16/2026 07:21:41",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:21 da Keldi deb belgilandi. Harorat: 36.6°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186491371",
+      "timestamp": "7/16/2026 07:21:31",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:21 da Keldi deb belgilandi. Harorat: 36.7°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186489370",
+      "timestamp": "7/16/2026 07:21:29",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:21 da Keldi deb belgilandi. Harorat: 36.6°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186485368",
+      "timestamp": "7/16/2026 07:21:25",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:21 da Keldi deb belgilandi. Harorat: 36.4°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186477365",
+      "timestamp": "7/16/2026 07:21:17",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:21 da Keldi deb belgilandi. Harorat: 36.6°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186459358",
+      "timestamp": "7/16/2026 07:20:59",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:20 da Keldi deb belgilandi. Harorat: 36.4°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186457358",
+      "timestamp": "7/16/2026 07:20:57",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:20 da Keldi deb belgilandi. Harorat: 36.7°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186447358",
+      "timestamp": "7/16/2026 07:20:47",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:20 da Keldi deb belgilandi. Harorat: 36.8°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186443358",
+      "timestamp": "7/16/2026 07:20:43",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:20 da Keldi deb belgilandi. Harorat: 36.5°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186439355",
+      "timestamp": "7/16/2026 07:20:39",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:20 da Keldi deb belgilandi. Harorat: 36.3°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186433355",
+      "timestamp": "7/16/2026 07:20:33",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:20 da Keldi deb belgilandi. Harorat: 36.9°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186409347",
+      "timestamp": "7/16/2026 07:20:09",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:20 da Keldi deb belgilandi. Harorat: 36.4°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186395343",
+      "timestamp": "7/16/2026 07:19:55",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:19 da Keldi deb belgilandi. Harorat: 36.6°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186393342",
+      "timestamp": "7/16/2026 07:19:53",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:19 da Keldi deb belgilandi. Harorat: 36.9°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186363326",
+      "timestamp": "7/16/2026 07:19:23",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:19 da Keldi deb belgilandi. Harorat: 37°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186359326",
+      "timestamp": "7/16/2026 07:19:19",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:19 da Keldi deb belgilandi. Harorat: 36.7°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186355326",
+      "timestamp": "7/16/2026 07:19:15",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:19 da Keldi deb belgilandi. Harorat: 36.7°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186341323",
+      "timestamp": "7/16/2026 07:19:01",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:19 da Keldi deb belgilandi. Harorat: 36.4°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186339323",
+      "timestamp": "7/16/2026 07:18:59",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:18 da Keldi deb belgilandi. Harorat: 37°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186335321",
+      "timestamp": "7/16/2026 07:18:55",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:18 da Keldi deb belgilandi. Harorat: 36.3°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186327320",
+      "timestamp": "7/16/2026 07:18:47",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:18 da Keldi deb belgilandi. Harorat: 36.7°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186309318",
+      "timestamp": "7/16/2026 07:18:29",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:18 da Keldi deb belgilandi. Harorat: 36.3°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186252992",
+      "timestamp": "7/16/2026 07:17:32",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:17 da Keldi deb belgilandi. Harorat: 36.2°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186250993",
+      "timestamp": "7/16/2026 07:17:30",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:17 da Keldi deb belgilandi. Harorat: 36.4°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186242991",
+      "timestamp": "7/16/2026 07:17:22",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:17 da Keldi deb belgilandi. Harorat: 36.8°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186200984",
+      "timestamp": "7/16/2026 07:16:40",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:16 da Keldi deb belgilandi. Harorat: 36.2°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186186980",
+      "timestamp": "7/16/2026 07:16:26",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:16 da Keldi deb belgilandi. Harorat: 36.3°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186176978",
+      "timestamp": "7/16/2026 07:16:16",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:16 da Keldi deb belgilandi. Harorat: 36.4°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186174976",
+      "timestamp": "7/16/2026 07:16:14",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:16 da Keldi deb belgilandi. Harorat: 36.8°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186158973",
+      "timestamp": "7/16/2026 07:15:58",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:15 da Keldi deb belgilandi. Harorat: 36.9°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186152972",
+      "timestamp": "7/16/2026 07:15:52",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:15 da Keldi deb belgilandi. Harorat: 36.7°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186150971",
+      "timestamp": "7/16/2026 07:15:50",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:15 da Keldi deb belgilandi. Harorat: 36.5°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186132966",
+      "timestamp": "7/16/2026 07:15:32",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:15 da Keldi deb belgilandi. Harorat: 36.6°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186070939",
+      "timestamp": "7/16/2026 07:14:30",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:14 da Keldi deb belgilandi. Harorat: 37°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186068937",
+      "timestamp": "7/16/2026 07:14:28",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:14 da Keldi deb belgilandi. Harorat: 36.6°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186066937",
+      "timestamp": "7/16/2026 07:14:26",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:14 da Keldi deb belgilandi. Harorat: 36.7°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186060935",
+      "timestamp": "7/16/2026 07:14:20",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:14 da Keldi deb belgilandi. Harorat: 36.2°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186052933",
+      "timestamp": "7/16/2026 07:14:12",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:14 da Keldi deb belgilandi. Harorat: 36.6°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186038929",
+      "timestamp": "7/16/2026 07:13:58",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:13 da Keldi deb belgilandi. Harorat: 36.3°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186036929",
+      "timestamp": "7/16/2026 07:13:56",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:13 da Keldi deb belgilandi. Harorat: 36.2°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186030927",
+      "timestamp": "7/16/2026 07:13:50",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:13 da Keldi deb belgilandi. Harorat: 36.4°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186026926",
+      "timestamp": "7/16/2026 07:13:46",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:13 da Keldi deb belgilandi. Harorat: 36.4°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186022925",
+      "timestamp": "7/16/2026 07:13:42",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:13 da Keldi deb belgilandi. Harorat: 36.3°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784186010922",
+      "timestamp": "7/16/2026 07:13:30",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:13 da Keldi deb belgilandi. Harorat: 36.6°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784185952904",
+      "timestamp": "7/16/2026 07:12:32",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:12 da Keldi deb belgilandi. Harorat: 36.2°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784185946903",
+      "timestamp": "7/16/2026 07:12:26",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:12 da Keldi deb belgilandi. Harorat: 36.9°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784185910897",
+      "timestamp": "7/16/2026 07:11:50",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:11 da Keldi deb belgilandi. Harorat: 36.8°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784185904894",
+      "timestamp": "7/16/2026 07:11:44",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:11 da Keldi deb belgilandi. Harorat: 36.3°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784185836632",
+      "timestamp": "7/16/2026 07:10:36",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 07:10 da Keldi deb belgilandi. Harorat: 36.4°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
     {
       "id": "LOG-1784185820627",
       "timestamp": "7/16/2026 07:10:20",

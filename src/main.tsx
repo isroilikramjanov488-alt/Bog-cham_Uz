@@ -36,6 +36,7 @@ if (
 
     if (isApiCall) {
       const targetUrl = `${BACKEND_URL}${relativePath}`;
+      console.log(`[Proxy Interceptor] Fetching: ${url} -> redirected to Render: ${targetUrl}`);
       if (typeof input === 'string') {
         return originalFetch(targetUrl, init);
       } else if (input instanceof URL) {
@@ -54,10 +55,12 @@ if (
   window.WebSocket = function (url: string | URL, protocols?: string | string[]) {
     let targetUrl = typeof url === 'string' ? url : url.toString();
     if (targetUrl.includes(window.location.host)) {
+      const originalUrl = targetUrl;
       targetUrl = targetUrl.replace(window.location.host, BACKEND_HOST);
       if (targetUrl.startsWith('ws://')) {
         targetUrl = targetUrl.replace('ws://', 'wss://');
       }
+      console.log(`[Proxy Interceptor] WebSocket: ${originalUrl} -> redirected to Render: ${targetUrl}`);
     }
     return new OriginalWebSocket(targetUrl, protocols);
   };
