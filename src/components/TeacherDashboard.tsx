@@ -317,15 +317,18 @@ export default function TeacherDashboard({ user, childrenList, onRefresh }: Teac
     setRealCameraTargetId(targetId);
     setRealCameraDirection(direction);
     setRealCameraType(type);
-    setIsRealCameraOpen(true);
     
-    // Proactively request browser-native permission if not yet granted
-    if (cameraPermission !== "granted") {
-      const permitted = await askCameraPermission();
-      if (!permitted) {
-        setRealCameraError("Kamera ruxsatnomasi rad etildi yoki qurilmada kamera topilmadi! Iltimos, ruxsat berish tugmasini bosing.");
-      }
+    // Proactively request browser-native permission before opening the camera modal
+    let permitted = cameraPermission === "granted";
+    if (!permitted) {
+      permitted = await askCameraPermission();
     }
+    
+    if (!permitted) {
+      setRealCameraError("Kamera ruxsatnomasi rad etildi yoki qurilmada kamera topilmadi! Iltimos, brauzerda kameraga ruxsat bering.");
+    }
+    
+    setIsRealCameraOpen(true);
   };
 
   // Close real camera handler

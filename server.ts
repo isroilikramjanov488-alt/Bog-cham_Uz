@@ -13,14 +13,17 @@ dotenv.config();
 const app = express();
 const PORT = 3000;
 
-// CORS MIDDLEWARE
+// CORS & REQUEST DEBUGGING MIDDLEWARE
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Methods", "GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-telegram-init-data");
-  res.header("Access-Control-Expose-Headers", "Content-Length, Content-Range");
+  console.log(`[BACKEND REQUEST] ${req.method} ${req.originalUrl} | Origin: ${req.headers.origin || 'none'} | Host: ${req.headers.host}`);
+  
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-telegram-init-data");
+  res.setHeader("Access-Control-Expose-Headers", "Content-Length, Content-Range");
   
   if (req.method === "OPTIONS") {
+    console.log(`[CORS Preflight OPTIONS] Handled OPTIONS request for ${req.originalUrl}`);
     return res.sendStatus(200);
   }
   next();
@@ -4599,6 +4602,15 @@ async function startServer() {
         wss.emit("connection", ws, request);
       });
     }
+  });
+
+  // API Route Fallback (404 for unmatched API requests)
+  app.use("/api/*", (req, res) => {
+    console.warn(`[BACKEND API 404] Route not found: ${req.method} ${req.originalUrl}`);
+    res.status(404).json({
+      success: false,
+      message: `API route not found: ${req.method} ${req.originalUrl}`
+    });
   });
 
   if (process.env.NODE_ENV !== "production") {
