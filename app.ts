@@ -17,7 +17,10 @@ const app = express();
 
 // Explicit CORS setup as requested
 app.use(cors({
-  origin: "*",
+  origin: (origin, callback) => {
+    // Dynamically allow any origin to comply with credentials: true
+    callback(null, true);
+  },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization", "x-kindergarten-id"],
   credentials: true

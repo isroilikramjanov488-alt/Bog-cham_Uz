@@ -12,7 +12,7 @@ if (
   !window.location.hostname.includes('ais-dev') &&
   !window.location.hostname.includes('ais-pre')
 ) {
-  const BACKEND_HOST = 'bog-cham-uz.onrender.com';
+  const BACKEND_HOST = 'bogcham-uz.onrender.com';
   const BACKEND_URL = `https://${BACKEND_HOST}`;
 
   // 1. Intercept API Fetch requests

@@ -15,7 +15,7 @@ dotenv.config();
 const PORT = 3000;
 
 // API Route Fallback (404 for unmatched API requests)
-app.use("/api/*all", (req, res) => {
+app.use("/api/*", (req, res) => {
   console.warn(`[BACKEND API 404] Route not found: ${req.method} ${req.path} (Original: ${req.originalUrl})`);
   res.status(404).json({
     success: false,
