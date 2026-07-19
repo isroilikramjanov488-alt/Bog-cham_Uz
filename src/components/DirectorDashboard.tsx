@@ -16,8 +16,10 @@ import { jsPDF } from "jspdf";
 import { motion, AnimatePresence } from "motion/react";
 import { Child, Group, Employee, Complaint, AuditLog, Payment, Attendance } from "../types";
 import { AuditLogger } from "../utils/AuditLogger";
+import { exportToCSV as exportJSONToCSV } from "../utils/csvExport";
 import AiCamerasPage from "./AiCamerasPage";
 import DeviceManagement from "./DeviceManagement";
+import SystemLogs from "./SystemLogs";
 
 interface DirectorDashboardProps {
   user: any;
@@ -1681,75 +1683,129 @@ export default function DirectorDashboard({
    };
  
    const exportAttendanceCSV = (type: "children" | "staff", period: "daily" | "weekly" | "monthly") => {
-     const todayStr = new Date().toISOString().split("T")[0];
-     const filteredRecords = attendanceList.filter(a => {
-       const isEmployee = a.childId.startsWith("E-") || employeesList.some(e => e.id === a.childId);
-       if (type === "children" && isEmployee) return false;
-       if (type === "staff" && !isEmployee) return false;
- 
-       if (period === "daily") {
-         return a.date === todayStr;
-       } else if (period === "weekly") {
-         const diffTime = Math.abs(new Date().getTime() - new Date(a.date).getTime());
-         return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) <= 7;
-       } else {
-         const diffTime = Math.abs(new Date().getTime() - new Date(a.date).getTime());
-         return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) <= 30;
-       }
-     });
- 
-     let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-     
-     if (type === "children") {
-       csvContent += "Sana,ID,Ism-Familiya,Guruh,Kelgan Vaqti,Ketgan Vaqti,Tana Harorati,Holat,Olib ketgan shaxs\n";
-       filteredRecords.forEach(rec => {
-         const ch = childrenList.find(c => c.id === rec.childId);
-         const groupName = ch ? (groupsList.find(g => g.id === ch.groupId)?.name || "Guruhsiz") : "—";
-         const childName = ch ? ch.name : `Bola (ID: ${rec.childId})`;
-         const row = [
-           rec.date,
-           rec.childId,
-           childName,
-           groupName,
-           rec.checkIn || "—",
-           rec.checkOut || "—",
-           rec.temperature ? `${rec.temperature}°C` : "—",
-           rec.status,
-           rec.checkoutPersonName || "—"
-         ].map(val => `"${val.replace(/"/g, '""')}"`).join(",");
-         csvContent += row + "\n";
-       });
-     } else {
-       csvContent += "Sana,ID,Ism-Familiya,Lavozim,Kelgan Vaqti,Ketgan Vaqti,Tana Harorati,Holat\n";
-       filteredRecords.forEach(rec => {
-         const emp = employeesList.find(e => e.id === rec.childId);
-         const empName = emp ? emp.name : `Xodim (ID: ${rec.childId})`;
-         const empRole = emp ? emp.role : "Xodim";
-         const row = [
-           rec.date,
-           rec.childId,
-           empName,
-           empRole,
-           rec.checkIn || "—",
-           rec.checkOut || "—",
-           rec.temperature ? `${rec.temperature}°C` : "—",
-           rec.checkOut ? "Ishdan ketdi" : "Ayni vaqtda ishda"
-         ].map(val => `"${val.replace(/"/g, '""')}"`).join(",");
-         csvContent += row + "\n";
-       });
-     }
- 
-     const encodedUri = encodeURI(csvContent);
-     const link = document.createElement("a");
-     link.setAttribute("href", encodedUri);
-     link.setAttribute("download", `${type}_attendance_${period}_report.csv`);
-     document.body.appendChild(link);
-     link.click();
-     document.body.removeChild(link);
-     triggerNotification(`${period === "daily" ? "Kunlik" : period === "weekly" ? "Haftalik" : "Oylik"} CSV hisobot muvaffaqiyatli yuklandi! 📥`);
-   };
- 
-   const exportAttendancePDF = (type: "children" | "staff", period: "daily" | "weekly" | "monthly") => {
+      const todayStr = new Date().toISOString().split("T")[0];
+      const filteredRecords = attendanceList.filter(a => {
+        const isEmployee = a.childId.startsWith("E-") || employeesList.some(e => e.id === a.childId);
+        if (type === "children" && isEmployee) return false;
+        if (type === "staff" && !isEmployee) return false;
+  
+        if (period === "daily") {
+          return a.date === todayStr;
+        } else if (period === "weekly") {
+          const diffTime = Math.abs(new Date().getTime() - new Date(a.date).getTime());
+          return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) <= 7;
+        } else {
+          const diffTime = Math.abs(new Date().getTime() - new Date(a.date).getTime());
+          return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) <= 30;
+        }
+      });
+  
+      if (type === "children") {
+        const dataToExport = filteredRecords.map(rec => {
+          const ch = childrenList.find(c => c.id === rec.childId);
+          const groupName = ch ? (groupsList.find(g => g.id === ch.groupId)?.name || "Guruhsiz") : "—";
+          const childName = ch ? ch.name : `Bola (ID: ${rec.childId})`;
+          return {
+            date: rec.date,
+            id: rec.childId,
+            name: childName,
+            group: groupName,
+            checkIn: rec.checkIn || "—",
+            checkOut: rec.checkOut || "—",
+            temperature: rec.temperature ? `${rec.temperature}°C` : "—",
+            status: rec.status,
+            checkoutPerson: rec.checkoutPersonName || "—"
+          };
+        });
+
+        const columns = [
+          { key: "date", header: "Sana" },
+          { key: "id", header: "ID" },
+          { key: "name", header: "Ism-Familiya" },
+          { key: "group", header: "Guruh" },
+          { key: "checkIn", header: "Kelgan Vaqti" },
+          { key: "checkOut", header: "Ketgan Vaqti" },
+          { key: "temperature", header: "Tana Harorati" },
+          { key: "status", header: "Holat" },
+          { key: "checkoutPerson", header: "Olib ketgan shaxs" }
+        ];
+
+        exportJSONToCSV(dataToExport, columns, `${type}_attendance_${period}_report`);
+      } else {
+        const dataToExport = filteredRecords.map(rec => {
+          const emp = employeesList.find(e => e.id === rec.childId);
+          const empName = emp ? emp.name : `Xodim (ID: ${rec.childId})`;
+          const empRole = emp ? emp.role : "Xodim";
+          return {
+            date: rec.date,
+            id: rec.childId,
+            name: empName,
+            role: empRole,
+            checkIn: rec.checkIn || "—",
+            checkOut: rec.checkOut || "—",
+            temperature: rec.temperature ? `${rec.temperature}°C` : "—",
+            status: rec.checkOut ? "Ishdan ketdi" : "Ayni vaqtda ishda"
+          };
+        });
+
+        const columns = [
+          { key: "date", header: "Sana" },
+          { key: "id", header: "ID" },
+          { key: "name", header: "Ism-Familiya" },
+          { key: "role", header: "Lavozim" },
+          { key: "checkIn", header: "Kelgan Vaqti" },
+          { key: "checkOut", header: "Ketgan Vaqti" },
+          { key: "temperature", header: "Tana Harorati" },
+          { key: "status", header: "Holat" }
+        ];
+
+        exportJSONToCSV(dataToExport, columns, `${type}_attendance_${period}_report`);
+      }
+  
+      triggerNotification(`${period === "daily" ? "Kunlik" : period === "weekly" ? "Haftalik" : "Oylik"} CSV hisobot muvaffaqiyatli yuklandi! 📥`);
+    };
+
+    const exportPaymentsCSV = () => {
+      const columns = [
+        { key: "childName", header: "Bola ismi" },
+        { key: "date", header: "Sana" },
+        { key: "month", header: "Oylik (Month)" },
+        { key: "paymentType", header: "To'lov turi" },
+        { key: "amount", header: "Summa" }
+      ];
+      const dataToExport = paymentsList.map(p => ({
+        childName: childrenList.find(c => c.id === p.childId)?.name || "Bola",
+        date: p.date,
+        month: `${p.month} oyi`,
+        paymentType: p.paymentType,
+        amount: `${p.amount.toLocaleString()} UZS`
+      }));
+      exportJSONToCSV(dataToExport, columns, "tolovlar_hisoboti");
+      triggerNotification("To'lovlar ro'yxati muvaffaqiyatli yuklab olindi! 📥");
+    };
+
+    const exportEmployeesCSV = () => {
+      const columns = [
+        { key: "name", header: "Xodim F.I.O" },
+        { key: "role", header: "Rol / Lavozim" },
+        { key: "username", header: "Tizimdagi logini" },
+        { key: "phone", header: "Telefon" },
+        { key: "salary", header: "Maosh" },
+        { key: "status", header: "Status" }
+      ];
+      const dataToExport = employeesList.map(e => ({
+        name: e.name,
+        role: e.role,
+        username: e.username,
+        phone: e.phone,
+        salary: "3,200,000 UZS",
+        status: e.status
+      }));
+      exportJSONToCSV(dataToExport, columns, "xodimlar_shtati_report");
+      triggerNotification("Xodimlar ro'yxati muvaffaqiyatli yuklab olindi! 📥");
+    };
+
+    const exportAttendancePDF = (type: "children" | "staff", period: "daily" | "weekly" | "monthly") => {
      const todayStr = new Date().toISOString().split("T")[0];
      const filteredRecords = attendanceList.filter(a => {
        const isEmployee = a.childId.startsWith("E-") || employeesList.some(e => e.id === a.childId);
@@ -2848,40 +2904,6 @@ export default function DirectorDashboard({
                       <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
                         Farzandlarning biometrik kirish/chiqish davomatlari va xabarlarini ota-onalar smartfoniga telegram-bot orqali yetkazish moduli.
                       </p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-4 bg-slate-950/40 border border-slate-850 p-3 rounded-2xl">
-                    <div className="text-[10px] px-2">
-                      <span className="text-slate-500 block">Ulanish vaqti (Uptime):</span>
-                      <span className={`font-mono font-black text-xs ${tgBotStatus === "online" ? "text-emerald-400" : "text-rose-400"}`}>
-                        {tgBotUptime}
-                      </span>
-                    </div>
-                    <div className="text-[10px] px-2 border-l border-slate-850">
-                      <span className="text-slate-500 block">Ping (Latency):</span>
-                      <span className="text-indigo-400 font-mono font-black text-xs">
-                        {tgBotLatency !== null ? `${tgBotLatency} ms` : "N/A"}
-                      </span>
-                    </div>
-                    <div className="text-[10px] px-2 border-l border-slate-850">
-                      <span className="text-slate-500 block">Ulanish statusi:</span>
-                      <span className={`font-black ${tgBotStatus === "online" ? "text-slate-300" : "text-rose-400"}`}>
-                        {tgBotStatus === "online" ? "Barqaror ulanish" : "Xatolik aniqlandi"}
-                      </span>
-                    </div>
-                    <div className="pl-2 border-l border-slate-850 flex items-center">
-                      <button 
-                        disabled={tgBotTesting}
-                        onClick={handleToggleTgError}
-                        className={`text-[9px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl cursor-pointer transition-all flex items-center gap-1 shrink-0 ${
-                          tgBotStatus === "online" 
-                            ? "bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500 hover:text-slate-950" 
-                            : "bg-emerald-500 text-slate-950 hover:bg-emerald-400"
-                        }`}
-                      >
-                        {tgBotTesting ? "Yuklanmoqda..." : tgBotStatus === "online" ? "⚠️ Simulyatsiya: Xatolik" : "✅ Qayta Tiklash"}
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -4422,12 +4444,20 @@ export default function DirectorDashboard({
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-white font-black text-sm uppercase tracking-wider">Xodimlar shtati va vakolatlar</h3>
-                <button
-                  onClick={() => setShowAddEmpModal(true)}
-                  className="bg-emerald-500 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-xl cursor-pointer"
-                >
-                  ➕ Yangi Xodim Qo'shish
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={exportEmployeesCSV}
+                    className="bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold text-xs px-3 py-1.5 rounded-xl cursor-pointer border border-slate-700 transition-all flex items-center gap-1"
+                  >
+                    📥 CSV yuklab olish
+                  </button>
+                  <button
+                    onClick={() => setShowAddEmpModal(true)}
+                    className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-xl cursor-pointer transition-all"
+                  >
+                    ➕ Yangi Xodim Qo'shish
+                  </button>
+                </div>
               </div>
 
               <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
@@ -4915,9 +4945,17 @@ export default function DirectorDashboard({
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-white font-black text-sm uppercase tracking-wider">To'lovlar Qabuli va Qarzdorlar jadvali</h3>
-                <button onClick={() => setShowAddPaymentModal(true)} className="bg-emerald-500 text-slate-950 px-3 py-1.5 rounded-xl font-bold text-xs cursor-pointer">
-                  ➕ Yangi To'lov Qabul qilish
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={exportPaymentsCSV}
+                    className="bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold text-xs px-3 py-1.5 rounded-xl cursor-pointer border border-slate-700 transition-all flex items-center gap-1"
+                  >
+                    📥 CSV yuklab olish
+                  </button>
+                  <button onClick={() => setShowAddPaymentModal(true)} className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-3 py-1.5 rounded-xl font-bold text-xs cursor-pointer transition-all">
+                    ➕ Yangi To'lov Qabul qilish
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -5599,104 +5637,9 @@ export default function DirectorDashboard({
           )}
 
           {/* 16. AUDIT COMPONENT */}
-          {activeTab === "audit" && (() => {
-            const filteredLogs = auditLogsList.filter(log => {
-              const matchesKg = user.role === "SuperAdmin" || !log.kindergartenId || log.kindergartenId === user.kindergartenId;
-              const matchesSearch = !auditSearch || 
-                log.user.toLowerCase().includes(auditSearch.toLowerCase()) || 
-                log.action.toLowerCase().includes(auditSearch.toLowerCase()) || 
-                (log.ip && log.ip.toLowerCase().includes(auditSearch.toLowerCase()));
-              return matchesKg && matchesSearch;
-            });
-
-            return (
-              <div className="space-y-6 animate-fade-in">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-white font-black text-sm uppercase tracking-wider flex items-center gap-2">
-                      <Shield className="w-5 h-5 text-emerald-400" />
-                      <span>Xavfsizlik va Tizim Faoliyati Audit Jurnallari</span>
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {user.role === "SuperAdmin" 
-                        ? "Barcha bog'chalar va tizim modullaridagi real vaqt faoliyat jurnali (SuperAdmin)" 
-                        : "Sizning bog'changizga tegishli barcha amallar va hodisalarning to'liq auditi"}
-                    </p>
-                  </div>
-                  
-                  {/* Controls */}
-                  <div className="flex flex-wrap items-center gap-3">
-                    <input
-                      type="text"
-                      value={auditSearch}
-                      onChange={(e) => setAuditSearch(e.target.value)}
-                      placeholder="Qidiruv (User, Action, IP)..."
-                      className="bg-slate-900 border border-slate-800 text-white rounded-xl py-2 px-3 text-xs outline-none focus:border-emerald-500 w-52"
-                    />
-                    <button
-                      onClick={() => exportToCSV(filteredLogs, "Audit_Logs")}
-                      className="bg-emerald-500/10 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 border border-emerald-500/20 rounded-xl py-2 px-3.5 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow"
-                      title="Audit jurnallarini CSV formatiga eksport qilish"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Eksport (CSV)</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Audit table card */}
-                <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-xs">
-                      <thead>
-                        <tr className="bg-slate-950/60 text-slate-400 font-bold uppercase tracking-wider border-b border-slate-850">
-                          <th className="py-3.5 px-5">Vaqt</th>
-                          <th className="py-3.5 px-5">Foydalanuvchi</th>
-                          <th className="py-3.5 px-5">Amal / Hodisa</th>
-                          <th className="py-3.5 px-5">IP Manzil</th>
-                          <th className="py-3.5 px-5 text-right">Tizim ID</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-850 font-mono text-[11px]">
-                        {filteredLogs.length === 0 ? (
-                          <tr>
-                            <td colSpan={5} className="py-12 text-center text-slate-500 font-sans">
-                              Audit jurnallari topilmadi.
-                            </td>
-                          </tr>
-                        ) : (
-                          filteredLogs.map(log => {
-                            const isDanger = log.action.toLowerCase().includes("o'chirdi") || log.action.toLowerCase().includes("delete") || log.action.toLowerCase().includes("rad") || log.action.toLowerCase().includes("o'chish");
-                            const isSuccess = log.action.toLowerCase().includes("muvaffaqiyatli") || log.action.toLowerCase().includes("login") || log.action.toLowerCase().includes("qo'shildi");
-                            return (
-                              <tr key={log.id} className="hover:bg-slate-950/40 transition-colors">
-                                <td className="py-3.5 px-5 text-slate-500 whitespace-nowrap">{log.timestamp}</td>
-                                <td className="py-3.5 px-5 font-bold text-white font-sans flex items-center gap-2">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                  {log.user}
-                                </td>
-                                <td className="py-3.5 px-5 font-sans">
-                                  <span className={`px-2.5 py-0.5 rounded font-medium text-[10px] ${
-                                    isDanger ? "bg-rose-500/10 text-rose-400 border border-rose-500/10" :
-                                    isSuccess ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/10" :
-                                    "bg-slate-800 text-slate-300 border border-slate-700/50"
-                                  }`}>
-                                    {log.action}
-                                  </span>
-                                </td>
-                                <td className="py-3.5 px-5 text-slate-400">{log.ip || "127.0.0.1"}</td>
-                                <td className="py-3.5 px-5 text-slate-500 text-right uppercase text-[9px]">{log.kindergartenId || "Tizim (Global)"}</td>
-                              </tr>
-                            );
-                          })
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
+          {activeTab === "audit" && (
+            <SystemLogs user={user} onRefreshGlobal={onRefresh} />
+          )}
 
           {/* FAILED CHECK-INS COMPONENT */}
           {activeTab === "failed_checkins" && (

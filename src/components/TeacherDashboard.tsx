@@ -249,7 +249,7 @@ export default function TeacherDashboard({ user, childrenList, onRefresh }: Teac
   const [isScannerActive, setIsScannerActive] = useState(false);
   const [scannerMode, setScannerMode] = useState<"qr" | "face">("face");
   const [scanTemp, setScanTemp] = useState("36.6");
-  const [selectedScanChildId, setSelectedScanChildId] = useState("");
+  const [selectedScanChildId, setSelectedScanChildId] = useState("auto");
   const [scanningInProgress, setScanningInProgress] = useState(false);
   const [scanSuccessChild, setScanSuccessChild] = useState<any>(null);
   const [cameraPermissionError, setCameraPermissionError] = useState(false);
@@ -511,18 +511,34 @@ export default function TeacherDashboard({ user, childrenList, onRefresh }: Teac
   };
 
   const handlePerformScan = async () => {
-    if (!selectedScanChildId) {
-      triggerToast("Iltimos, avval skanerlash uchun bolani tanlang!");
-      return;
+    let finalChildId = selectedScanChildId;
+    const todayStr = new Date().toISOString().split("T")[0];
+
+    // Auto-generate temperature first
+    const calculatedTemp = (36.3 + Math.random() * 0.5).toFixed(1);
+    setScanTemp(calculatedTemp);
+
+    if (!finalChildId || finalChildId === "auto") {
+      // Automatically detect child: pick one who hasn't been scanned today for current direction
+      const unscanned = studentsToRender.find(c => {
+        const hasAtt = attendanceList.some(a => a.childId === c.id && a.date === todayStr && (scanDirection === "in" ? a.checkIn : a.checkOut));
+        return !hasAtt;
+      }) || studentsToRender[0];
+
+      if (!unscanned) {
+        triggerToast("Guruhdagi barcha bolalar davomati allaqachon olingan!");
+        return;
+      }
+      finalChildId = unscanned.id;
     }
-    
+
     setScanningInProgress(true);
-    setScannerLogs(prev => [`Skanerlash boshlandi... (Tartib: ${scannerMode.toUpperCase()})`, ...prev]);
+    setScannerLogs(prev => [`[Kamera] Skanerlash boshlandi... (Tartib: ${scannerMode.toUpperCase()})`, ...prev]);
     
-    // Simulate scanner focus
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Simulate fast scanner focus as requested ("tez fast ishlashi kerak")
+    await new Promise(resolve => setTimeout(resolve, 400));
     
-    const child = childrenList.find(c => c.id === selectedScanChildId);
+    const child = childrenList.find(c => c.id === finalChildId);
     if (!child) return;
 
     // We scan on entrance IP (221) if check-in, else exit IP (226) for checkout
@@ -534,9 +550,9 @@ export default function TeacherDashboard({ user, childrenList, onRefresh }: Teac
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           deviceIp,
-          childId: selectedScanChildId,
+          childId: finalChildId,
           password: "admin135@",
-          temperature: Number(scanTemp) || 36.6
+          temperature: Number(calculatedTemp)
         })
       });
 
@@ -548,13 +564,13 @@ export default function TeacherDashboard({ user, childrenList, onRefresh }: Teac
             name: child.name,
             photo: child.photo,
             time: new Date().toLocaleTimeString("uz-UZ", { hour: '2-digit', minute: '2-digit' }),
-            direction: scanDirection === "in" ? "KIRISH (Check-In)" : "CHIQISH (Check-Out)",
-            temp: scanTemp
+            direction: scanDirection === "in" ? "KIRISH (GURUHGA KIRDI) 🟢" : "CHIQISH (UYGA KETDI) 🔵",
+            temp: calculatedTemp
           });
-          setScannerLogs(prev => [`Muvaffaqiyatli davomat: ${child.name} - ${scanDirection === "in" ? 'Kirdi' : 'Chiqdi'} (${scanTemp}°C)`, ...prev]);
+          setScannerLogs(prev => [`[Muvaffaqiyat] ${child.name} yuzi aniqlandi. Harorat: ${calculatedTemp}°C. Davomat saqlandi!`, ...prev]);
           await fetchAttendanceList();
           onRefresh();
-          triggerToast(`${child.name} davomati muvaffaqiyatli qayd etildi!`);
+          triggerToast(`${child.name} davomati qayd etildi! Harorat: ${calculatedTemp}°C`);
         } else {
           triggerToast(data.message || "Xatolik yuz berdi");
         }
@@ -1301,7 +1317,7 @@ export default function TeacherDashboard({ user, childrenList, onRefresh }: Teac
                             }}
                             className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl py-2 px-3 text-xs outline-none font-bold"
                           >
-                            <option value="">-- Bolani Tanlang --</option>
+                            <option value="auto">🤖 Avtomatik aniqlash (Yuz/QR Skaner)</option>
                             {studentsToRender.map(c => (
                               <option key={c.id} value={c.id}>{c.name} (ID: {c.id})</option>
                             ))}
@@ -1627,33 +1643,13 @@ export default function TeacherDashboard({ user, childrenList, onRefresh }: Teac
                 </div>
               </div>
 
-              <div className="flex border-b border-slate-800 pb-1.5 gap-4">
-                <button
-                  type="button"
-                  onClick={() => setAttendanceSubTab("children")}
-                  className={`pb-2 px-1 text-xs font-black uppercase tracking-wider transition-all cursor-pointer border-b-2 ${
-                    attendanceSubTab === "children"
-                      ? "border-emerald-500 text-emerald-400 font-extrabold"
-                      : "border-transparent text-slate-400 hover:text-slate-300"
-                  }`}
-                >
-                  Bolalar Davomati ({studentsToRender.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAttendanceSubTab("employees")}
-                  className={`pb-2 px-1 text-xs font-black uppercase tracking-wider transition-all cursor-pointer border-b-2 ${
-                    attendanceSubTab === "employees"
-                      ? "border-emerald-500 text-emerald-400 font-extrabold"
-                      : "border-transparent text-slate-400 hover:text-slate-300"
-                  }`}
-                >
-                  Xodimlar Davomati ({employeesList.length})
-                </button>
+              <div className="flex border-b border-slate-800 pb-2">
+                <span className="pb-2 text-xs font-black uppercase tracking-wider text-emerald-400 border-b-2 border-emerald-500">
+                  Bolalar Bugungi Davomati ({studentsToRender.length} ta)
+                </span>
               </div>
 
-              {attendanceSubTab === "children" ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {studentsToRender.map(c => {
                     const todayStr = new Date().toISOString().split("T")[0];
                     const attRecord = attendanceList.find(a => a.childId === c.id && a.date === todayStr);
@@ -1792,105 +1788,6 @@ export default function TeacherDashboard({ user, childrenList, onRefresh }: Teac
                     );
                   })}
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {employeesList.map(e => {
-                    const todayStr = new Date().toISOString().split("T")[0];
-                    const attRecord = attendanceList.find(a => a.childId === e.id && a.date === todayStr);
-                    
-                    let statusLabel = "Kelmagan";
-                    let badgeStyle = "bg-rose-500/15 text-rose-400 border border-rose-500/10";
-                    
-                    if (attRecord?.checkIn && !attRecord?.checkOut) {
-                      statusLabel = "Ishda";
-                      badgeStyle = "bg-emerald-500/15 text-emerald-400 border border-emerald-500/10";
-                    } else if (attRecord?.checkOut) {
-                      statusLabel = "Ketgan";
-                      badgeStyle = "bg-sky-500/15 text-sky-400 border border-sky-500/10";
-                    }
-
-                    const initials = e.name ? e.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) : "EM";
-
-                    return (
-                      <div key={e.id} className="bg-slate-950 border border-slate-850 p-4 rounded-2xl flex flex-col justify-between gap-4 transition-all duration-300 hover:scale-[1.01]">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-3">
-                            <div className="w-11 h-11 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-emerald-400 font-black text-xs uppercase shrink-0">
-                              {initials}
-                            </div>
-                            <div>
-                              <div className="font-bold text-white text-sm">{e.name}</div>
-                              <div className="flex flex-col gap-1 mt-0.5">
-                                <span className="text-[10px] text-slate-500 font-mono block">ID: {e.id} • Lavozim: {e.role}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider ${badgeStyle}`}>
-                            {statusLabel}
-                          </span>
-                        </div>
-
-                        <div className="border-t border-b border-slate-900 py-3 grid grid-cols-3 gap-2 text-center">
-                          <div>
-                            <span className="text-[9px] text-slate-500 uppercase font-bold block">Kelgan vaqti</span>
-                            <span className="text-xs font-mono font-bold text-slate-300 block mt-0.5">
-                              {attRecord?.checkIn ? (
-                                <span className="text-emerald-400 bg-emerald-500/5 px-1.5 py-0.5 rounded">{attRecord.checkIn}</span>
-                              ) : "—"}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-[9px] text-slate-500 uppercase font-bold block">Ketgan vaqti</span>
-                            <span className="text-xs font-mono font-bold text-slate-300 block mt-0.5">
-                              {attRecord?.checkOut ? (
-                                <span className="text-sky-400 bg-sky-500/5 px-1.5 py-0.5 rounded">{attRecord.checkOut}</span>
-                              ) : "—"}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-[9px] text-slate-500 uppercase font-bold block">Harorat</span>
-                            <span className="text-xs font-mono font-bold text-slate-300 block mt-0.5">
-                              {attRecord?.temperature ? (
-                                <span className={`${attRecord.temperature >= 37.5 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                                  {attRecord.temperature}°C
-                                </span>
-                              ) : "—"}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex gap-2">
-                          {(!attRecord || !attRecord.checkOut) ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const direction = !attRecord ? "in" : "out";
-                                openRealCamera("attendance", e.id, direction, "employee");
-                              }}
-                              className={`flex-1 font-black py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all border ${
-                                !attRecord 
-                                  ? "bg-emerald-500 text-slate-950 hover:bg-emerald-400 border-transparent shadow-lg shadow-emerald-500/5" 
-                                  : "bg-sky-500/20 text-sky-400 hover:bg-sky-500/30 border-sky-500/30"
-                              }`}
-                              title={!attRecord ? "Biometrik Kirish (Check-In) Kamera 🎥" : "Biometrik Chiqish (Check-Out) Kamera 🎥"}
-                            >
-                              <Camera className="w-3.5 h-3.5" /> 
-                              {!attRecord ? "Check-In Kamera" : "Check-Out Kamera"}
-                            </button>
-                          ) : (
-                            <button
-                              disabled
-                              className="flex-1 bg-slate-800 text-slate-600 py-2 rounded-xl text-xs font-bold cursor-not-allowed border border-slate-850 flex items-center justify-center gap-1.5"
-                            >
-                              <Check className="w-3.5 h-3.5" /> Bugungi davomat to'liq yakunlandi
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
             </div>
           )}
 

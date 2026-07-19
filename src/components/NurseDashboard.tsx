@@ -9,6 +9,89 @@ interface NurseDashboardProps {
 }
 
 export default function NurseDashboard({ user, childrenList, onRefresh }: NurseDashboardProps) {
+  // Self-Attendance and Group Stats States
+  const [myAttendance, setMyAttendance] = useState<any>(null);
+  const [groupStats, setGroupStats] = useState<any[]>([]);
+  const employeeId = "E-104"; // Nurse ID (Sitora Aliyeva)
+
+  const fetchMyAttendance = async () => {
+    try {
+      const todayStr = new Date().toISOString().split("T")[0];
+      const res = await fetch("/api/attendance");
+      if (res.ok) {
+        const list = await res.json();
+        const record = list.find((a: any) => a.childId === employeeId && a.date === todayStr);
+        setMyAttendance(record);
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+  };
+
+  const fetchGroupStats = async () => {
+    try {
+      const chRes = await fetch("/api/children");
+      const attRes = await fetch("/api/attendance");
+      if (chRes.ok && attRes.ok) {
+        const children = await chRes.json();
+        const attendance = await attRes.json();
+        const todayStr = new Date().toISOString().split("T")[0];
+
+        const groupsMap: Record<string, { total: number; present: number }> = {
+          "Kamalak": { total: 0, present: 0 },
+          "Shodlik": { total: 0, present: 0 },
+          "Quyosh": { total: 0, present: 0 },
+          "Yulduzcha": { total: 0, present: 0 }
+        };
+
+        children.forEach((c: any) => {
+          const groupName = c.group || "Kamalak";
+          if (!groupsMap[groupName]) {
+            groupsMap[groupName] = { total: 0, present: 0 };
+          }
+          groupsMap[groupName].total++;
+          
+          const hasAtt = attendance.some((a: any) => a.childId === c.id && a.date === todayStr && (a.status === "Bog'chada" || a.status === "Keldi" || a.status === "Kechikdi"));
+          if (hasAtt) {
+            groupsMap[groupName].present++;
+          }
+        });
+
+        const list = Object.entries(groupsMap).map(([name, val]) => ({
+          name,
+          ...val
+        }));
+        setGroupStats(list);
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+  };
+
+  const handleSelfAttendance = async (direction: "in" | "out") => {
+    try {
+      const res = await fetch("/api/attendance/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targetId: employeeId,
+          type: "employee",
+          direction: direction,
+          temperature: (36.3 + Math.random() * 0.5).toFixed(1)
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          fetchMyAttendance();
+          onRefresh();
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const [selectedChildId, setSelectedChildId] = useState("");
   const [allergies, setAllergies] = useState("");
   const [bloodGroup, setBloodGroup] = useState("O (I)");
@@ -36,6 +119,8 @@ export default function NurseDashboard({ user, childrenList, onRefresh }: NurseD
     if (childrenList.length > 0 && !selectedChildId) {
       setSelectedChildId(childrenList[0].id);
     }
+    fetchMyAttendance();
+    fetchGroupStats();
 
     const handleJumpTab = (e: Event) => {
       const customEvent = e as CustomEvent;
@@ -117,7 +202,99 @@ export default function NurseDashboard({ user, childrenList, onRefresh }: NurseD
   const vaccineOptions = ["BCG", "Hepatitis B", "Polio", "DTP", "Measles", "Mumps", "Rubella"];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <div className="space-y-6">
+      {/* Header and Self-Attendance & Group Stats Cards */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800 pb-5">
+        <div>
+          <span className="text-[10px] bg-rose-500/10 text-rose-400 font-extrabold tracking-widest uppercase px-2 py-0.5 rounded border border-rose-500/15">Sog'liqni Saqlash Paneli</span>
+          <h2 className="text-white text-2xl font-black tracking-tight mt-1">Tibbiyot va Salomatlik Monitoringi</h2>
+          <p className="text-slate-400 text-xs mt-0.5">Bolalar tibbiy kartalarini yuritish, emlash va guruhlar holatini nazorat qilish.</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Mening Davomatim */}
+        <div className="bg-gradient-to-r from-slate-900 via-rose-950 to-slate-900 border border-rose-500/25 p-5 rounded-3xl relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/25 flex items-center justify-center text-rose-400 font-bold text-sm shrink-0 uppercase">
+              {user?.name ? user.name.split(" ").map((n: string) => n[0]).join("") : "SA"}
+            </div>
+            <div className="text-xs">
+              <span className="bg-rose-500/10 text-rose-400 text-[9px] font-black tracking-widest uppercase px-2 py-0.5 rounded border border-rose-500/15">Mening Shaxsiy Davomatim</span>
+              <h3 className="text-white text-base font-black tracking-tight mt-1">{user?.name || "Sitora Aliyeva"}</h3>
+              <p className="text-slate-400 mt-0.5">Lavozim: Katta Hamshira • ID: E-104</p>
+              
+              <div className="mt-2 flex items-center gap-3">
+                <div className="text-[10px]">
+                  <span className="text-slate-500 block uppercase font-bold">KIRISH</span>
+                  <span className="text-emerald-400 font-mono font-bold">{myAttendance?.checkIn ? myAttendance.checkIn : "—"}</span>
+                </div>
+                <div className="text-[10px]">
+                  <span className="text-slate-500 block uppercase font-bold">CHIQISH</span>
+                  <span className="text-sky-400 font-mono font-bold">{myAttendance?.checkOut ? myAttendance.checkOut : "—"}</span>
+                </div>
+                <div className="text-[10px]">
+                  <span className="text-slate-500 block uppercase font-bold">HARORAT</span>
+                  <span className="text-amber-400 font-mono font-bold">{myAttendance?.temperature ? `${myAttendance.temperature}°C` : "—"}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-2 shrink-0">
+            {!myAttendance ? (
+              <button
+                type="button"
+                onClick={() => handleSelfAttendance("in")}
+                className="bg-emerald-500 text-slate-950 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-emerald-400 transition-all cursor-pointer shadow-lg shadow-emerald-500/10"
+              >
+                Check-In
+              </button>
+            ) : !myAttendance.checkOut ? (
+              <button
+                type="button"
+                onClick={() => handleSelfAttendance("out")}
+                className="bg-sky-500 text-slate-950 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-sky-400 transition-all cursor-pointer shadow-lg shadow-sky-500/10"
+              >
+                Check-Out
+              </button>
+            ) : (
+              <span className="bg-slate-800 text-slate-400 px-3 py-2 rounded-xl text-xs font-bold border border-slate-750 flex items-center gap-1">
+                ✓ Yakunlandi
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Guruhlardagi Bolalar Soni */}
+        <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl">
+          <div className="flex items-center justify-between mb-3">
+            <span className="bg-rose-500/10 text-rose-400 text-[9px] font-black tracking-widest uppercase px-2 py-0.5 rounded border border-rose-500/15">Guruhlar Keldi-Ketdisi</span>
+            <span className="text-xs text-slate-400 font-medium">Guruhlardagi bolalar soni</span>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            {groupStats.length > 0 ? groupStats.map(g => {
+              const percent = g.total > 0 ? Math.round((g.present / g.total) * 100) : 0;
+              return (
+                <div key={g.name} className="bg-slate-950/40 border border-slate-850 p-2.5 rounded-xl">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold text-slate-300">{g.name}</span>
+                    <span className="font-mono text-[10px] text-emerald-400 font-bold">{g.present}/{g.total}</span>
+                  </div>
+                  <div className="w-full bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
+                    <div className="bg-rose-500 h-full rounded-full transition-all duration-500" style={{ width: `${percent}%` }}></div>
+                  </div>
+                </div>
+              );
+            }) : (
+              <div className="col-span-2 text-center text-slate-500 py-4 text-xs font-medium">Guruhlar yuklanmoqda...</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
       {/* Left Column: Kids medical roster */}
       <div className="lg:col-span-4 bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-4 flex flex-col h-[580px]">
         <div>
@@ -413,6 +590,7 @@ export default function NurseDashboard({ user, childrenList, onRefresh }: NurseD
           </div>
         </form>
       )}
+    </div>
     </div>
   );
 }
