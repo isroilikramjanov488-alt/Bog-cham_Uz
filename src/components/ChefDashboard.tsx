@@ -52,6 +52,7 @@ import {
   AreaChart,
   Area
 } from "recharts";
+import MacronutrientsRechartsChart from "./MacronutrientsRechartsChart";
 
 interface ChefDashboardProps {
   user: any;
@@ -94,6 +95,93 @@ export default function ChefDashboard({ user, mealsList, onRefresh }: ChefDashbo
   const [allergies, setAllergies] = useState<any[]>([]);
   const [gallery, setGallery] = useState<any[]>([]);
 
+  // Self-Attendance and Group Stats States
+  const [myAttendance, setMyAttendance] = useState<any>(null);
+  const [groupStats, setGroupStats] = useState<any[]>([]);
+  const employeeId = "E-105"; // Chef ID (Rustam Karimov)
+
+  const fetchMyAttendance = async () => {
+    try {
+      const todayStr = new Date().toISOString().split("T")[0];
+      const res = await fetch("/api/attendance");
+      if (res.ok) {
+        const list = await res.json();
+        const record = list.find((a: any) => a.childId === employeeId && a.date === todayStr);
+        setMyAttendance(record);
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+  };
+
+  const fetchGroupStats = async () => {
+    try {
+      const chRes = await fetch("/api/children");
+      const attRes = await fetch("/api/attendance");
+      if (chRes.ok && attRes.ok) {
+        const children = await chRes.json();
+        const attendance = await attRes.json();
+        const todayStr = new Date().toISOString().split("T")[0];
+
+        const groupsMap: Record<string, { total: number; present: number }> = {
+          "Kamalak": { total: 0, present: 0 },
+          "Shodlik": { total: 0, present: 0 },
+          "Quyosh": { total: 0, present: 0 },
+          "Yulduzcha": { total: 0, present: 0 }
+        };
+
+        children.forEach((c: any) => {
+          const groupName = c.group || "Kamalak";
+          if (!groupsMap[groupName]) {
+            groupsMap[groupName] = { total: 0, present: 0 };
+          }
+          groupsMap[groupName].total++;
+          
+          const hasAtt = attendance.some((a: any) => a.childId === c.id && a.date === todayStr && (a.status === "Bog'chada" || a.status === "Keldi" || a.status === "Kechikdi"));
+          if (hasAtt) {
+            groupsMap[groupName].present++;
+          }
+        });
+
+        const list = Object.entries(groupsMap).map(([name, val]) => ({
+          name,
+          ...val
+        }));
+        setGroupStats(list);
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+  };
+
+  const handleSelfAttendance = async (direction: "in" | "out") => {
+    try {
+      const res = await fetch("/api/attendance/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targetId: employeeId,
+          type: "employee",
+          direction: direction,
+          temperature: (36.3 + Math.random() * 0.5).toFixed(1)
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          showToast(`Davomat muvaffaqiyatli saqlandi! (${direction === "in" ? "Ishni boshladingiz" : "Ishni yakunladingiz"})`);
+          fetchMyAttendance();
+          onRefresh();
+        } else {
+          showToast(data.message || "Xatolik yuz berdi");
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      showToast("Ulanish xatosi");
+    }
+  };
+
   // Loading and action triggers
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -113,6 +201,7 @@ export default function ChefDashboard({ user, mealsList, onRefresh }: ChefDashbo
   const [menuServingTime, setMenuServingTime] = useState("12:30");
   const [menuAgeGroup, setMenuAgeGroup] = useState("3-6 yosh");
   const [menuInstructions, setMenuInstructions] = useState("Qaynatib, pishgach ko'katlar bilan bezatiladi.");
+  const [menuImage, setMenuImage] = useState("https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&q=80&w=200");
 
   // Form states: Add Ingredient
   const [ingName, setIngName] = useState("");
@@ -226,6 +315,8 @@ export default function ChefDashboard({ user, mealsList, onRefresh }: ChefDashbo
 
   useEffect(() => {
     loadKmsData();
+    fetchMyAttendance();
+    fetchGroupStats();
 
     const handleJumpTab = (e: Event) => {
       const customEvent = e as CustomEvent;
@@ -322,7 +413,8 @@ export default function ChefDashboard({ user, mealsList, onRefresh }: ChefDashbo
         cookingInstructions: menuInstructions,
         portionSize: menuPortionSize,
         servingTime: menuServingTime,
-        ageGroup: menuAgeGroup
+        ageGroup: menuAgeGroup,
+        image: menuImage
       };
 
       const res = await fetch("/api/menus", {
@@ -770,6 +862,89 @@ export default function ChefDashboard({ user, mealsList, onRefresh }: ChefDashbo
       {/* -------------------- 1. DASHBOARD TAB -------------------- */}
       {activeTab === "dashboard" && (
         <div className="space-y-6">
+          {/* SPECIAL ADDITIONS: MENING DAVOMATIM & GURUHLARDAGI BOLALAR */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Mening Davomatim */}
+            <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/25 p-5 rounded-3xl relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center text-indigo-400 font-bold text-sm shrink-0 uppercase">
+                  {user?.name ? user.name.split(" ").map((n: string) => n[0]).join("") : "RK"}
+                </div>
+                <div className="text-xs">
+                  <span className="bg-indigo-500/10 text-indigo-400 text-[9px] font-black tracking-widest uppercase px-2 py-0.5 rounded border border-indigo-500/15">Mening Shaxsiy Davomatim</span>
+                  <h3 className="text-white text-base font-black tracking-tight mt-1">{user?.name || "Rustam Karimov"}</h3>
+                  <p className="text-slate-400 mt-0.5">Lavozim: Bosh Oshpaz • ID: E-105</p>
+                  
+                  <div className="mt-2 flex items-center gap-3">
+                    <div className="text-[10px]">
+                      <span className="text-slate-500 block uppercase font-bold">KIRISH</span>
+                      <span className="text-emerald-400 font-mono font-bold">{myAttendance?.checkIn ? myAttendance.checkIn : "—"}</span>
+                    </div>
+                    <div className="text-[10px]">
+                      <span className="text-slate-500 block uppercase font-bold">CHIQISH</span>
+                      <span className="text-sky-400 font-mono font-bold">{myAttendance?.checkOut ? myAttendance.checkOut : "—"}</span>
+                    </div>
+                    <div className="text-[10px]">
+                      <span className="text-slate-500 block uppercase font-bold">HARORAT</span>
+                      <span className="text-amber-400 font-mono font-bold">{myAttendance?.temperature ? `${myAttendance.temperature}°C` : "—"}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2 shrink-0">
+                {!myAttendance ? (
+                  <button
+                    type="button"
+                    onClick={() => handleSelfAttendance("in")}
+                    className="bg-emerald-500 text-slate-950 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-emerald-400 transition-all cursor-pointer shadow-lg shadow-emerald-500/10"
+                  >
+                    Check-In
+                  </button>
+                ) : !myAttendance.checkOut ? (
+                  <button
+                    type="button"
+                    onClick={() => handleSelfAttendance("out")}
+                    className="bg-sky-500 text-slate-950 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-sky-400 transition-all cursor-pointer shadow-lg shadow-sky-500/10"
+                  >
+                    Check-Out
+                  </button>
+                ) : (
+                  <span className="bg-slate-800 text-slate-400 px-3 py-2 rounded-xl text-xs font-bold border border-slate-750 flex items-center gap-1">
+                    ✓ Yakunlandi
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Guruhlardagi Bolalar Soni */}
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl">
+              <div className="flex items-center justify-between mb-3">
+                <span className="bg-emerald-500/10 text-emerald-400 text-[9px] font-black tracking-widest uppercase px-2 py-0.5 rounded border border-emerald-500/15">Guruhlar Keldi-Ketdisi</span>
+                <span className="text-xs text-slate-400 font-medium">Guruhlardagi bolalar soni</span>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                {groupStats.length > 0 ? groupStats.map(g => {
+                  const percent = g.total > 0 ? Math.round((g.present / g.total) * 100) : 0;
+                  return (
+                    <div key={g.name} className="bg-slate-950/40 border border-slate-850 p-2.5 rounded-xl">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-bold text-slate-300">{g.name}</span>
+                        <span className="font-mono text-[10px] text-emerald-400 font-bold">{g.present}/{g.total}</span>
+                      </div>
+                      <div className="w-full bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
+                        <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${percent}%` }}></div>
+                      </div>
+                    </div>
+                  );
+                }) : (
+                  <div className="col-span-2 text-center text-slate-500 py-4 text-xs font-medium">Guruhlar yuklanmoqda...</div>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Statistics Grid - 12 Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between">
@@ -979,6 +1154,11 @@ export default function ChefDashboard({ user, mealsList, onRefresh }: ChefDashbo
                 </ResponsiveContainer>
               </div>
             </div>
+
+            {/* Recharts weekly macronutrient distribution chart */}
+            <div className="lg:col-span-2">
+              <MacronutrientsRechartsChart data={chartsData.weeklyMenu} />
+            </div>
           </div>
 
           {/* Quick Actions Panel */}
@@ -1185,6 +1365,39 @@ export default function ChefDashboard({ user, mealsList, onRefresh }: ChefDashbo
                   onChange={(e) => setMenuAllergens(e.target.value)}
                   placeholder="G'alla, tuxum, sut yoki yo'q"
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white outline-none"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-slate-400 font-bold block">Taom Rasmi (Rasm tanlang yoki URL kiriting):</span>
+                <div className="grid grid-cols-6 gap-2">
+                  {[
+                    { id: "porridge", url: "https://images.unsplash.com/photo-1517433367423-c7e5b0f35086?auto=format&fit=crop&q=80&w=300", label: "Bo'tqa" },
+                    { id: "soup", url: "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&q=80&w=300", label: "Sho'rva" },
+                    { id: "salad", url: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=300", label: "Salat" },
+                    { id: "rice", url: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=300", label: "Osh" },
+                    { id: "fruit", url: "https://images.unsplash.com/photo-1579372786545-d24232daf58c?auto=format&fit=crop&q=80&w=300", label: "Meva" },
+                    { id: "pasta", url: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=300", label: "Issiq taom" }
+                  ].map((img) => (
+                    <button
+                      key={img.id}
+                      type="button"
+                      onClick={() => setMenuImage(img.url)}
+                      className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                        menuImage === img.url ? "border-emerald-500 scale-105" : "border-slate-800 hover:border-slate-600"
+                      }`}
+                    >
+                      <img src={img.url} alt={img.label} className="w-full h-full object-cover" />
+                      <div className="absolute inset-x-0 bottom-0 bg-black/60 text-[8px] text-white py-0.5 text-center truncate">{img.label}</div>
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  placeholder="Yoki maxsus rasm URL manzili..."
+                  value={menuImage}
+                  onChange={(e) => setMenuImage(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-xl p-2 text-[10px] text-white outline-none font-mono"
                 />
               </div>
 

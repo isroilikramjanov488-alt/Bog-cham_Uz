@@ -1,7 +1,89 @@
 {
-  "kindergartens": [],
-  "children": [],
-  "groups": [],
+  "kindergartens": [
+    {
+      "id": "K-1",
+      "name": "Nihol AI Bog'chasi (Chilonzor filiali)",
+      "address": "Toshkent sh., Chilonzor tumani, 5-mavze",
+      "phone": "+998711234567",
+      "directorName": "Karimov Shaxzod Baxtiyorovich",
+      "directorUsername": "director"
+    }
+  ],
+  "children": [
+    {
+      "id": "B-101",
+      "name": "Alisherov Bilolbek",
+      "groupId": "G-1",
+      "birthDate": "2020-04-12",
+      "age": 6,
+      "gender": "O'g'il",
+      "parentName": "Alisherov Rustam",
+      "parentPhone": "+998901234567",
+      "telegramChatId": "SIM-PARENT",
+      "photo": "https://images.unsplash.com/photo-1503919545889-aef636e10ad4?auto=format&fit=crop&q=80&w=200",
+      "status": "Faol",
+      "medicalCard": {
+        "allergies": "Yo'q",
+        "bloodGroup": "II",
+        "rhFactor": "+",
+        "height": 112,
+        "weight": 20,
+        "vaccinations": [
+          "Gepatit B",
+          "Bo'g'ma",
+          "Ko'k yo'tal",
+          "Qizamiq"
+        ]
+      },
+      "kindergartenId": "K-1"
+    },
+    {
+      "id": "B-102",
+      "name": "Karimova Madina",
+      "groupId": "G-1",
+      "birthDate": "2021-09-05",
+      "age": 5,
+      "gender": "Qiz",
+      "parentName": "Karimova Shohida",
+      "parentPhone": "+998991112233",
+      "telegramChatId": "",
+      "photo": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=200",
+      "status": "Faol",
+      "medicalCard": {
+        "allergies": "Shokolad",
+        "bloodGroup": "I",
+        "rhFactor": "+",
+        "height": 105,
+        "weight": 18,
+        "vaccinations": [
+          "Gepatit B",
+          "Polio",
+          "Qizamiq"
+        ]
+      },
+      "kindergartenId": "K-1"
+    }
+  ],
+  "groups": [
+    {
+      "id": "G-1",
+      "name": "Kamalak (Katta guruh)",
+      "teacherId": "E-3",
+      "room": "102-xona",
+      "capacity": 25,
+      "ageRange": "5-6 yosh",
+      "kindergartenId": "K-1"
+    },
+    {
+      "id": "G-2",
+      "name": "Zvezdochka (O'rta guruh)",
+      "teacherId": "E-3",
+      "room": "104-xona",
+      "capacity": 20,
+      "ageRange": "4-5 yosh",
+      "kindergartenId": "K-1"
+    }
+  ],
   "employees": [
     {
       "id": "E-1",
@@ -14,42 +96,187 @@
       "birthDate": "1988-05-15",
       "joinedDate": "2024-01-01",
       "status": "Faol"
+    },
+    {
+      "id": "E-2",
+      "username": "director",
+      "passwordHash": "admin135@",
+      "role": "Direktor",
+      "name": "Karimov Shaxzod Baxtiyorovich",
+      "phone": "+998901112233",
+      "passport": "AB9876543",
+      "birthDate": "1982-11-22",
+      "joinedDate": "2024-03-10",
+      "status": "Faol",
+      "kindergartenId": "K-1"
+    },
+    {
+      "id": "E-3",
+      "username": "teacher",
+      "passwordHash": "admin135@",
+      "role": "Tarbiyachi",
+      "name": "Rahimova Nodira Shavkatovna",
+      "phone": "+998974445566",
+      "passport": "AC1112223",
+      "birthDate": "1994-08-05",
+      "joinedDate": "2024-09-01",
+      "status": "Faol",
+      "kindergartenId": "K-1"
+    },
+    {
+      "id": "E-4",
+      "username": "chef",
+      "passwordHash": "admin135@",
+      "role": "Oshpaz",
+      "name": "Abdullayev Rustam G'ofurovich",
+      "phone": "+998946667788",
+      "passport": "AD3334445",
+      "birthDate": "1975-02-14",
+      "joinedDate": "2024-05-01",
+      "status": "Faol",
+      "kindergartenId": "K-1"
+    },
+    {
+      "id": "E-5",
+      "username": "nurse",
+      "passwordHash": "admin135@",
+      "role": "Hamshira",
+      "name": "Soliqova Nilufar Alisherovna",
+      "phone": "+998937778899",
+      "passport": "AE5556667",
+      "birthDate": "1990-12-10",
+      "joinedDate": "2024-06-15",
+      "status": "Faol",
+      "kindergartenId": "K-1"
+    },
+    {
+      "id": "E-6",
+      "username": "accountant",
+      "passwordHash": "admin135@",
+      "role": "Buxgalter",
+      "name": "Xalilov Azizbek Husanovich",
+      "phone": "+998912223344",
+      "passport": "AF7778889",
+      "birthDate": "1985-04-18",
+      "joinedDate": "2024-04-01",
+      "status": "Faol",
+      "kindergartenId": "K-1"
     }
   ],
   "attendance": [
     {
-      "id": "ATT-520192",
-      "childId": "E-1",
-      "date": "2026-07-15",
-      "checkIn": "14:44",
+      "id": "ATT-001",
+      "childId": "B-101",
+      "date": "2026-07-17",
+      "checkIn": "08:15",
       "checkOut": null,
       "status": "Keldi",
-      "reason": null,
+      "temperature": 36.5,
       "deviceIp": "192.168.1.221",
-      "temperature": 36.8
+      "kindergartenId": "K-1"
     },
     {
-      "id": "ATT-634540",
-      "childId": "E-1",
-      "date": "2026-07-16",
-      "checkIn": "08:10",
+      "id": "ATT-002",
+      "childId": "B-102",
+      "date": "2026-07-17",
+      "checkIn": "08:20",
       "checkOut": null,
       "status": "Keldi",
-      "reason": null,
+      "temperature": 36.6,
       "deviceIp": "192.168.1.221",
-      "temperature": 37
+      "kindergartenId": "K-1"
     }
   ],
-  "mealPlans": [],
-  "dailyActivities": [],
-  "payments": [],
+  "mealPlans": [
+    {
+      "id": "MP-001",
+      "date": "2026-07-17",
+      "breakfast": {
+        "title": "Bo'tqa (Manni) va qora non sariyog' bilan, kakao",
+        "calories": 280,
+        "protein": 9,
+        "aiComment": "Ushbu nonushta bolalarning kun bo'yi baquvvat bo'lishini va aqliy faoliyatini yaxshilaydi."
+      },
+      "lunch": {
+        "title": "Karam sho'rva, guruchli palov go'sht bilan, meva sharbati",
+        "calories": 520,
+        "protein": 22,
+        "aiComment": "Tushlik oqsillarga va uglevodlarga boy bo'lib, mushaklar o'sishi va energiya beradi."
+      },
+      "dinner": {
+        "title": "Tvorogli zapekanka va limonli choy",
+        "calories": 310,
+        "protein": 14,
+        "aiComment": "Kechki taom kalsiy va oson hazm bo'luvchi oqsillarni ta'minlaydi."
+      },
+      "kindergartenId": "K-1"
+    }
+  ],
+  "dailyActivities": [
+    {
+      "id": "ACT-001",
+      "childId": "B-101",
+      "date": "2026-07-17",
+      "activities": [
+        "Rasm chizish",
+        "Ingliz tili - Alifbo",
+        "Musiqiy o'yinlar"
+      ],
+      "engagement": 5,
+      "communication": 4,
+      "discipline": 5,
+      "feeding": 4,
+      "sleep": 2.5,
+      "teacherNote": "Bilolbek bugun rasm chizish darsida juda faol bo'ldi va yangi so'zlarni tez o'rgandi."
+    }
+  ],
+  "payments": [
+    {
+      "id": "PAY-001",
+      "childId": "B-101",
+      "amount": 1500000,
+      "date": "2026-07-17",
+      "month": "Iyul",
+      "paymentType": "Payme",
+      "status": "To'langan",
+      "invoiceUrl": "https://example.com/invoice/pay-001",
+      "kindergartenId": "K-1"
+    }
+  ],
   "expenses": [],
   "payrolls": [],
   "purchaseRequests": [],
   "incomes": [],
-  "complaints": [],
+  "complaints": [
+    {
+      "id": "CMP-101",
+      "parentName": "Alisherov Rustam",
+      "childId": "B-101",
+      "phone": "+998901234567",
+      "text": "Farzandimning kiyimlarini almashtirishga e'tiborliroq bo'lishingizni so'rayman.",
+      "date": "2026-07-17",
+      "status": "Yangi",
+      "kindergartenId": "K-1"
+    }
+  ],
   "publicAnnouncements": [],
   "auditLogs": [
+    {
+      "id": "LOG-1784189461821",
+      "timestamp": "7/16/2026 08:11:01",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 08:11 da Keldi deb belgilandi. Harorat: 36.6°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
+    {
+      "id": "LOG-1784189451818",
+      "timestamp": "7/16/2026 08:10:51",
+      "user": "Simulyator",
+      "action": "[Auto Cron] Mobil Kamera Face ID orqali xodim Asqarov Jamshid (SuperAdmin) soat 08:10 da Keldi deb belgilandi. Harorat: 36.5°C.",
+      "ip": "127.0.0.1",
+      "device": "Avtomatik Tizim Skaneri"
+    },
     {
       "id": "LOG-1784189433810",
       "timestamp": "7/16/2026 08:10:33",
@@ -2987,12 +3214,75 @@
       "device": "Avtomatik Tizim Skaneri"
     }
   ],
-  "kgIngredients": [],
-  "kgRecipes": [],
-  "kgMealGallery": [],
+  "kgIngredients": [
+    {
+      "id": "ING-1",
+      "name": "Guruch (Alanga)",
+      "category": "Cereals",
+      "quantity": 25,
+      "unit": "kg",
+      "supplier": "Chilonzor Oziq-Ovqat Baza",
+      "expirationDate": "2026-12-01",
+      "purchasePrice": 12000,
+      "status": "Yetarli"
+    },
+    {
+      "id": "ING-2",
+      "name": "Mol go'shti (Svejiy)",
+      "category": "Meat",
+      "quantity": 8,
+      "unit": "kg",
+      "supplier": "G'iyos aka (Go'sht yetkazib beruvchi)",
+      "expirationDate": "2026-07-25",
+      "purchasePrice": 85000,
+      "status": "Kam qolgan"
+    }
+  ],
+  "kgRecipes": [
+    {
+      "id": "REC-1",
+      "title": "Osh (Palov)",
+      "category": "Hot Dish",
+      "instructions": "Go'sht va sabzini qovurish, guruch solib damlash.",
+      "ingredients": "Go'sht, Guruch, Sabzi, Piyoz",
+      "calories": 650,
+      "protein": 24,
+      "fat": 18,
+      "carb": 85,
+      "cost": 15000
+    }
+  ],
+  "kgMealGallery": [
+    {
+      "id": "GAL-1",
+      "title": "Bugungi tushlik taomlari tayyor",
+      "url": "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&q=80&w=400",
+      "date": "2026-07-17",
+      "type": "Tushlik",
+      "kindergartenId": "K-1",
+      "description": "Bolajonlarimiz uchun mazali palov va sabzavotli salat tayyorlandi!"
+    }
+  ],
   "superAdminDocuments": [],
   "smsLogs": [],
   "telegramNotifications": [],
-  "activeDevices": [],
+  "activeDevices": [
+    {
+      "id": "DEV-221",
+      "name": "Kirish darvozasi (Face ID Kamera)",
+      "ip": "192.168.1.221",
+      "status": "Online",
+      "type": "entrance",
+      "lastActivity": "9:32:39 AM"
+    },
+    {
+      "id": "DEV-222",
+      "name": "Chiqish darvozasi (Face ID Kamera)",
+      "ip": "192.168.1.222",
+      "status": "Online",
+      "type": "exit",
+      "lastActivity": "9:32:39 AM"
+    }
+  ],
   "failedCheckins": []
 }

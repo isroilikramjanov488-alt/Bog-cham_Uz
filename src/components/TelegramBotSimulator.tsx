@@ -176,7 +176,7 @@ export default function TelegramBotSimulator({ onRefresh }: { onRefresh?: () => 
         const pending = await telegramService.getPendingMessages(chatId);
         if (pending && pending.length > 0) {
           const newMsgs = pending.map((m: any) => ({
-            sender: "bot",
+            sender: "bot" as const,
             text: m.text,
             timestamp: m.timestamp || new Date().toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" }),
             markup: m.replyMarkup

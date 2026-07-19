@@ -84,6 +84,7 @@ export interface Attendance {
   reason: string | null;
   deviceIp: string | null;
   temperature?: number;
+  checkoutPersonName?: string;
 }
 
 export interface MealDetail {

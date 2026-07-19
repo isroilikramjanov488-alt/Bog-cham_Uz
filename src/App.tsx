@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { LogOut, Sparkles, Smartphone, Camera, Users, ShieldAlert, Heart, Calendar, HelpCircle, Activity, Globe, RefreshCw, ChefHat, CreditCard, Search, Send, Sun, Moon } from "lucide-react";
+import { motion } from "motion/react";
 import { User, Child, Group, Employee, Complaint, AuditLog, Payment, MealPlan } from "./types";
 import LoginScreen from "./components/LoginScreen";
 import TelegramBotSimulator from "./components/TelegramBotSimulator";
@@ -12,18 +13,255 @@ import CommandPalette from "./components/CommandPalette";
 import ParentPortal from "./components/ParentPortal";
 import TelegramLinkModal from "./components/TelegramLinkModal";
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.12,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 15 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring" as const,
+      stiffness: 100,
+      damping: 15,
+    },
+  },
+};
+
+function decodeJWT(token: string): any {
+  try {
+    const parts = token.split(".");
+    if (parts.length === 3) {
+      const payload = parts[1];
+      const decoded = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
+      return JSON.parse(decoded);
+    }
+  } catch (err) {
+    console.error("JWT Decode failed:", err);
+  }
+  return null;
+}
+
+const apiCache = {
+  data: {} as Record<string, { value: any; timestamp: number }>,
+  get(key: string, ttl = 15000) {
+    const entry = this.data[key];
+    if (entry && Date.now() - entry.timestamp < ttl) {
+      return entry.value;
+    }
+    return null;
+  },
+  set(key: string, value: any) {
+    this.data[key] = { value, timestamp: Date.now() };
+  },
+  clear() {
+    this.data = {};
+  }
+};
+
 export default function App() {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem("currentUser");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        // Fallback below
+      }
+    }
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      const decoded = decodeJWT(token);
+      if (decoded) {
+        return decoded;
+      }
+    }
+    return null;
+  });
+
+  const [checkingSession, setCheckingSession] = useState<boolean>(() => {
+    return !!localStorage.getItem("authToken");
+  });
+
+  useEffect(() => {
+    const verifySession = async () => {
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        setCheckingSession(false);
+        return;
+      }
+      try {
+        const res = await fetch("/api/auth/me", {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.user) {
+            setCurrentUser(data.user);
+            localStorage.setItem("currentUser", JSON.stringify(data.user));
+          }
+        } else {
+          console.warn("[Session] Token is invalid or expired. Logging out.");
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("currentUser");
+          apiCache.clear();
+          setCurrentUser(null);
+        }
+      } catch (err) {
+        console.error("[Session] Verification failed:", err);
+        // On network failure, we still keep the localStorage/decoded user to support offline/resilience
+      } finally {
+        setCheckingSession(false);
+      }
+    };
+
+    verifySession();
+  }, []);
+
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem("currentUser", JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem("currentUser");
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    const originalFetch = window.fetch;
+    let isPatched = false;
+
+    try {
+      const customFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+        
+        if (url.includes('/api/')) {
+          const newInit = { ...(init || {}) };
+          const headers = new Headers(newInit.headers || {});
+          if (currentUser.kindergartenId && !headers.has('x-kindergarten-id')) {
+            headers.set('x-kindergarten-id', currentUser.kindergartenId);
+          }
+          
+          // Inject stored Authorization Bearer JWT token if available
+          const token = localStorage.getItem("authToken");
+          if (token && !headers.has('Authorization') && !headers.has('authorization')) {
+            headers.set('Authorization', `Bearer ${token}`);
+          }
+          
+          newInit.headers = headers;
+          return originalFetch(input, newInit);
+        }
+        
+        return originalFetch(input, init);
+      };
+
+      try {
+        window.fetch = customFetch;
+        isPatched = true;
+      } catch (e) {
+        Object.defineProperty(window, 'fetch', {
+          value: customFetch,
+          writable: true,
+          configurable: true
+        });
+        isPatched = true;
+      }
+    } catch (err) {
+      console.warn("[App] Failed to intercept window.fetch globally due to environment constraints:", err);
+    }
+
+    return () => {
+      if (isPatched) {
+        try {
+          window.fetch = originalFetch;
+        } catch (e) {
+          try {
+            Object.defineProperty(window, 'fetch', {
+              value: originalFetch,
+              writable: true,
+              configurable: true
+            });
+          } catch (err) {
+            // ignore
+          }
+        }
+      }
+    };
+  }, [currentUser]);
+
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isTelegramModalOpen, setIsTelegramModalOpen] = useState(false);
-  const [lastSyncTime, setLastSyncTime] = useState<string>("");
-  const [children, setChildren] = useState<Child[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [complaints, setComplaints] = useState<Complaint[]>([]);
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [meals, setMeals] = useState<MealPlan[]>([]);
+  const [lastSyncTime, setLastSyncTime] = useState<string>(() => {
+    return localStorage.getItem("cache_lastSyncTime") || "";
+  });
+  const [children, setChildren] = useState<Child[]>(() => {
+    try {
+      const cached = localStorage.getItem("cache_children");
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [groups, setGroups] = useState<Group[]>(() => {
+    try {
+      const cached = localStorage.getItem("cache_groups");
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [employees, setEmployees] = useState<Employee[]>(() => {
+    try {
+      const cached = localStorage.getItem("cache_employees");
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [complaints, setComplaints] = useState<Complaint[]>(() => {
+    try {
+      const cached = localStorage.getItem("cache_complaints");
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => {
+    try {
+      const cached = localStorage.getItem("cache_auditLogs");
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [payments, setPayments] = useState<Payment[]>(() => {
+    try {
+      const cached = localStorage.getItem("cache_payments");
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [meals, setMeals] = useState<MealPlan[]>(() => {
+    try {
+      const cached = localStorage.getItem("cache_meals");
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
   const [activeSimulator, setActiveSimulator] = useState<"none" | "telegram">("none");
   const [loadingData, setLoadingData] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -145,63 +383,115 @@ export default function App() {
     setActiveSimulator("none");
   }, [currentUser]);
 
+  const lastFetchTimeRef = useRef<number>(0);
+
   // Load all data from API
   const loadAllData = async (manual = false) => {
+    // 1. Prevent background syncs when document is hidden (Visibility check)
+    if (!manual && document.visibilityState === "hidden") {
+      console.log("[SWR] Skipping loadAllData because page is hidden");
+      return;
+    }
+
+    const now = Date.now();
+    const timeSinceLastFetch = now - lastFetchTimeRef.current;
+
+    // 2. Rate-limiting / Stale-While-Revalidate check
+    // If it's not a manual sync and we fetched very recently (e.g. less than 2 seconds ago), skip to avoid spamming the backend/re-rendering
+    if (!manual && timeSinceLastFetch < 2000) {
+      console.log("[SWR] Skipping fetch, using stale data (throttled under 2s)");
+      return;
+    }
+
+    const isFirstLoad = children.length === 0 && employees.length === 0;
     if (manual) {
       setIsRefreshing(true);
-    } else {
+    } else if (isFirstLoad) {
       setLoadingData(true);
     }
+
+    lastFetchTimeRef.current = now;
+
     const kgId = currentUser?.kindergartenId || "";
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (kgId) {
       headers["x-kindergarten-id"] = kgId;
     }
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    // Helper for resilient fetch to handle specific error codes (401, 403, 404, 500)
+    const resilientFetch = async (url: string, defaultValue: any = null, useCache = true) => {
+      if (useCache && !manual) {
+        const cached = apiCache.get(url, 15000); // 15 seconds TTL
+        if (cached) {
+          return cached;
+        }
+      }
+      try {
+        const res = await fetch(url, { headers });
+        if (!res.ok) {
+          console.warn(`[SWR] HTTP Error ${res.status} returned for: ${url}`);
+          if (res.status === 401) {
+            console.error("[SWR] Unauthorized (401) - session expired.");
+          } else if (res.status === 403) {
+            console.error("[SWR] Forbidden (403) - access restricted.");
+          } else if (res.status === 404) {
+            console.error("[SWR] Not Found (404) - API route doesn't exist.");
+          } else if (res.status >= 500) {
+            console.error(`[SWR] Server Error (${res.status}) - remote server issue.`);
+          }
+          return defaultValue;
+        }
+        const data = await res.json();
+        if (useCache) {
+          apiCache.set(url, data);
+        }
+        return data;
+      } catch (err) {
+        console.error(`[SWR] Fetch failed for ${url}:`, err);
+        return defaultValue;
+      }
+    };
+
+    // Non-blocking background updater helper
+    const fetchAndCache = async (url: string, cacheKey: string, setter: (val: any) => void) => {
+      const data = await resilientFetch(url, null, !manual);
+      if (data !== null) {
+        setter(data);
+        localStorage.setItem(`cache_${cacheKey}`, JSON.stringify(data));
+      }
+    };
+
     try {
-      const [
-        resChildren,
-        resGroups,
-        resEmployees,
-        resComplaints,
-        resAudit,
-        resPayments,
-        resMeals,
-      ] = await Promise.all([
-        fetch(`/api/children?kindergartenId=${kgId}`, { headers }),
-        fetch(`/api/groups?kindergartenId=${kgId}`, { headers }),
-        fetch(`/api/employees?kindergartenId=${kgId}`, { headers }),
-        fetch(`/api/complaints?kindergartenId=${kgId}`, { headers }),
-        fetch(`/api/audit-logs?kindergartenId=${kgId}`, { headers }),
-        fetch(`/api/payments?kindergartenId=${kgId}`, { headers }),
-        fetch(`/api/meals?kindergartenId=${kgId}`, { headers }),
-      ]);
+      const promises = [
+        fetchAndCache(`/api/children?kindergartenId=${kgId}`, "children", setChildren),
+        fetchAndCache(`/api/groups?kindergartenId=${kgId}`, "groups", setGroups),
+        fetchAndCache(`/api/employees?kindergartenId=${kgId}`, "employees", setEmployees),
+        fetchAndCache(`/api/complaints?kindergartenId=${kgId}`, "complaints", setComplaints),
+        fetchAndCache(`/api/audit-logs?kindergartenId=${kgId}`, "auditLogs", setAuditLogs),
+        fetchAndCache(`/api/payments?kindergartenId=${kgId}`, "payments", setPayments),
+        fetchAndCache(`/api/meals?kindergartenId=${kgId}`, "meals", setMeals),
+      ];
 
-      const [
-        dataChildren,
-        dataGroups,
-        dataEmployees,
-        dataComplaints,
-        dataAudit,
-        dataPayments,
-        dataMeals,
-      ] = await Promise.all([
-        resChildren.json(),
-        resGroups.json(),
-        resEmployees.json(),
-        resComplaints.json(),
-        resAudit.json(),
-        resPayments.json(),
-        resMeals.json(),
-      ]);
+      if (manual || isFirstLoad) {
+        // Wait blockingly if user requested manual refresh, or if there is no cached data at all
+        await Promise.allSettled(promises);
+      } else {
+        // Completely non-blocking background update for smoother UI navigation
+        Promise.allSettled(promises).then(() => {
+          const syncTime = new Date().toLocaleTimeString();
+          setLastSyncTime(syncTime);
+          localStorage.setItem("cache_lastSyncTime", syncTime);
+        });
+        return;
+      }
 
-      setChildren(dataChildren);
-      setGroups(dataGroups);
-      setEmployees(dataEmployees);
-      setComplaints(dataComplaints);
-      setAuditLogs(dataAudit);
-      setPayments(dataPayments);
-      setMeals(dataMeals);
-      setLastSyncTime(new Date().toLocaleTimeString());
+      const syncTime = new Date().toLocaleTimeString();
+      setLastSyncTime(syncTime);
+      localStorage.setItem("cache_lastSyncTime", syncTime);
     } catch (err) {
       console.error("Xatolik ma'lumotlarni yuklashda:", err);
     } finally {
@@ -273,10 +563,12 @@ export default function App() {
   // Handle logout
   const handleLogout = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
-      setCurrentUser(null);
+      await fetch("/api/logout", { method: "POST" });
     } catch (err) {
       console.error(err);
+    } finally {
+      setCurrentUser(null);
+      localStorage.removeItem("authToken");
     }
   };
 
@@ -365,6 +657,16 @@ export default function App() {
             window.location.reload();
           }
         }} />
+      </div>
+    );
+  }
+
+  // If checking session, show a beautiful loader instead of login redirect
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center font-sans gap-4">
+        <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
+        <p className="text-xs text-slate-400 font-bold tracking-wider uppercase">Tizim yuklanmoqda...</p>
       </div>
     );
   }
@@ -546,55 +848,63 @@ export default function App() {
               </div>
             </div>
           ) : (
-            <>
-              {/* Render corresponding dashboard based on logged in user's role */}
-              {(currentUser.role === "SuperAdmin" || currentUser.role === "Director" || currentUser.role === "Direktor") && (
-                <DirectorDashboard
-                  user={currentUser}
-                  childrenList={children}
-                  groupsList={groups}
-                  employeesList={employees}
-                  complaintsList={complaints}
-                  auditLogsList={auditLogs}
-                  paymentsList={payments}
-                  onRefresh={loadAllData}
-                  onUpdateAvatar={(newAvatar: string) => setCurrentUser({ ...currentUser, avatar: newAvatar })}
-                />
-              )}
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="w-full"
+            >
+              <motion.div variants={itemVariants}>
+                {/* Render corresponding dashboard based on logged in user's role */}
+                {(currentUser.role === "SuperAdmin" || currentUser.role === "Direktor") && (
+                  <DirectorDashboard
+                    user={currentUser}
+                    childrenList={children}
+                    groupsList={groups}
+                    employeesList={employees}
+                    complaintsList={complaints}
+                    auditLogsList={auditLogs}
+                    paymentsList={payments}
+                    mealsList={meals}
+                    onRefresh={loadAllData}
+                    onUpdateAvatar={(newAvatar: string) => setCurrentUser({ ...currentUser, avatar: newAvatar })}
+                  />
+                )}
 
-              {currentUser.role === "Tarbiyachi" && (
-                <TeacherDashboard
-                  user={currentUser}
-                  childrenList={children}
-                  onRefresh={loadAllData}
-                />
-              )}
+                {currentUser.role === "Tarbiyachi" && (
+                  <TeacherDashboard
+                    user={currentUser}
+                    childrenList={children}
+                    onRefresh={loadAllData}
+                  />
+                )}
 
-              {currentUser.role === "Hamshira" && (
-                <NurseDashboard
-                  user={currentUser}
-                  childrenList={children}
-                  onRefresh={loadAllData}
-                />
-              )}
+                {currentUser.role === "Hamshira" && (
+                  <NurseDashboard
+                    user={currentUser}
+                    childrenList={children}
+                    onRefresh={loadAllData}
+                  />
+                )}
 
-              {currentUser.role === "Oshpaz" && (
-                <ChefDashboard
-                  user={currentUser}
-                  mealsList={meals}
-                  onRefresh={loadAllData}
-                />
-              )}
+                {currentUser.role === "Oshpaz" && (
+                  <ChefDashboard
+                    user={currentUser}
+                    mealsList={meals}
+                    onRefresh={loadAllData}
+                  />
+                )}
 
-              {currentUser.role === "Buxgalter" && (
-                <AccountantDashboard
-                  user={currentUser}
-                  childrenList={children}
-                  paymentsList={payments}
-                  onRefresh={loadAllData}
-                />
-              )}
-            </>
+                {currentUser.role === "Buxgalter" && (
+                  <AccountantDashboard
+                    user={currentUser}
+                    childrenList={children}
+                    paymentsList={payments}
+                    onRefresh={loadAllData}
+                  />
+                )}
+              </motion.div>
+            </motion.div>
           )}
         </div>
       </main>

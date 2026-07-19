@@ -13,6 +13,7 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import { jsPDF } from "jspdf";
 import { Child, Payment } from "../types";
+import { exportToCSV } from "../utils/csvExport";
 
 interface AccountantDashboardProps {
   user: any;
@@ -29,7 +30,7 @@ export default function AccountantDashboard({
 }: AccountantDashboardProps) {
   // Navigation Tabs
   const [activeTab, setActiveTab] = useState<
-    "dashboard" | "payments" | "debtors" | "expenses" | "payroll" | "requests" | "reports" | "settings"
+    "dashboard" | "payments" | "debtors" | "expenses" | "payroll" | "requests" | "reports" | "settings" | "sms"
   >("dashboard");
 
   // State Data
@@ -148,7 +149,7 @@ export default function AccountantDashboard({
     const handleJump = (e: Event) => {
       const customEvent = e as CustomEvent<{ tabId: string; openModal?: string }>;
       if (customEvent.detail && customEvent.detail.tabId) {
-        setActiveTab(customEvent.detail.tabId);
+        setActiveTab(customEvent.detail.tabId as any);
         if (customEvent.detail.openModal === "add-expense") {
           setExpenseModalOpen(true);
         } else if (customEvent.detail.openModal === "add-payment") {
@@ -316,6 +317,44 @@ export default function AccountantDashboard({
       console.error(err);
       triggerError("Xatolik: PDF eksport qilish muvaffaqiyatsiz tugadi.");
     }
+  };
+
+  const exportPaymentsCSV = () => {
+    if (localPayments.length === 0) {
+      triggerError("Eksport qilish uchun to'lovlar mavjud emas!");
+      return;
+    }
+
+    const dataToExport = localPayments.map(p => {
+      const child = childrenList.find(c => c.id === p.childId);
+      const childName = child ? child.name : `Bola (ID: ${p.childId})`;
+      return {
+        id: p.id,
+        childName,
+        date: p.date || "—",
+        amount: p.amount,
+        paymentType: p.paymentType,
+        month: p.month,
+        status: p.status
+      };
+    });
+
+    const columns = [
+      { key: "id", header: "To'lov ID" },
+      { key: "childName", header: "Bola Ismi" },
+      { key: "date", header: "Sana" },
+      { key: "amount", header: "Summa (UZS)" },
+      { key: "paymentType", header: "To'lov Turi" },
+      { key: "month", header: "Oy" },
+      { key: "status", header: "Status" }
+    ];
+
+    exportToCSV(
+      dataToExport,
+      columns,
+      `Tolovlar_Hisoboti_${new Date().toISOString().split("T")[0]}`
+    );
+    triggerSuccess("Barcha oylik to'lovlar hisoboti CSV formatida muvaffaqiyatli yuklab olindi! 📥");
   };
 
   const triggerSuccess = (msg: string) => {
@@ -2108,8 +2147,59 @@ export default function AccountantDashboard({
 
         {/* 3. DEBTORS MANAGEMENT TAB */}
         {activeTab === "debtors" && (
-          <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-4">
+          <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-6">
             
+            {/* Debt Alerts (To'lov muddati o'tib ketganlar bo'limi) */}
+            {localDebtors.some((d: any) => d.monthsDebt >= 2 || d.status === "To'lanmagan") && (
+              <div className="bg-rose-950/25 border-2 border-rose-500/20 p-5 rounded-2xl space-y-3 shadow-lg animate-fade-in">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-rose-500/10 pb-2">
+                  <div>
+                    <h4 className="text-rose-400 font-extrabold text-xs uppercase tracking-widest flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping inline-block"></span>
+                      🚨 TO'LOV MUDDATI O'TIB KETGANLAR (DEBT ALERTS)
+                    </h4>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Ushbu tarbiyalanuvchilarning oylik to'lovi 2 oy yoki undan ortiq muddatga kechikkan. Quyidagi tezkor tugmalar orqali Telegram botiga avtomatik ogohlantirish yuboring.
+                    </p>
+                  </div>
+                  <span className="bg-rose-500/15 text-rose-400 text-[10px] font-bold px-2.5 py-1 rounded-full border border-rose-500/25 shrink-0 self-start sm:self-center">
+                    Muddati o'tgan: {localDebtors.filter((d: any) => d.monthsDebt >= 2 || d.status === "To'lanmagan").length} ta
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {localDebtors
+                    .filter((d: any) => d.monthsDebt >= 2 || d.status === "To'lanmagan")
+                    .map((d: any) => (
+                      <div key={d.id} className="bg-slate-950/80 border border-rose-900/30 p-3 rounded-xl flex flex-col justify-between gap-3 shadow-sm hover:border-rose-500/30 transition-all">
+                        <div className="space-y-1 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-white text-[13px]">{d.childName}</span>
+                            <span className="bg-rose-500/15 text-rose-400 text-[9px] font-black px-1.5 py-0.5 rounded uppercase font-mono border border-rose-500/10">
+                              {d.monthsDebt} oy kechikkan
+                            </span>
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-medium">Guruh: <span className="text-slate-300">{d.groupName}</span></div>
+                          <div className="text-[10px] text-slate-400 font-medium">Ota-ona: <span className="text-slate-200">{d.parentName}</span></div>
+                          <div className="text-[10px] text-slate-400 font-mono">Tel: <span className="text-slate-300">{d.phone}</span></div>
+                          <div className="pt-1.5 flex items-baseline gap-1 text-rose-400 font-mono font-extrabold text-[13px]">
+                            <span>Qarzdorlik:</span>
+                            <span>-{d.debtAmount.toLocaleString()} UZS</span>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => handleSendTelegramReminder(d)}
+                          className="w-full bg-rose-500 hover:bg-rose-400 text-slate-950 font-bold text-[10px] py-1.5 px-3 rounded-lg cursor-pointer transition-all flex items-center justify-center gap-1 shadow-md hover:shadow-rose-500/10"
+                        >
+                          <Send className="w-3 h-3" /> Telegramda Eslatish (Avto)
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
               <div>
                 <h3 className="text-white font-bold text-sm flex items-center gap-2">
@@ -2764,9 +2854,27 @@ export default function AccountantDashboard({
                 <div className="space-y-1.5">
                   <label className="text-slate-400 font-bold uppercase tracking-wider">Eksport Format:</label>
                   <div className="grid grid-cols-3 gap-2">
-                    <button className="bg-slate-950 hover:bg-slate-850 p-2 border border-slate-800 text-slate-300 rounded-xl font-bold font-mono">EXCEL</button>
-                    <button className="bg-slate-950 hover:bg-slate-850 p-2 border border-slate-800 text-slate-300 rounded-xl font-bold font-mono">PDF</button>
-                    <button className="bg-slate-950 hover:bg-slate-850 p-2 border border-slate-800 text-slate-300 rounded-xl font-bold font-mono">CSV</button>
+                    <button 
+                      onClick={exportPaymentsCSV}
+                      className="bg-slate-950 hover:bg-slate-850 p-2 border border-slate-800 text-slate-300 rounded-xl font-bold font-mono cursor-pointer transition-all active:scale-95"
+                      title="To'lovlar hisobotini EXCEL (CSV) formatida yuklash"
+                    >
+                      EXCEL
+                    </button>
+                    <button 
+                      onClick={generateAccountantPDF}
+                      className="bg-slate-950 hover:bg-slate-850 p-2 border border-slate-800 text-slate-300 rounded-xl font-bold font-mono cursor-pointer transition-all active:scale-95"
+                      title="Hisobotni PDF formatida yuklash"
+                    >
+                      PDF
+                    </button>
+                    <button 
+                      onClick={exportPaymentsCSV}
+                      className="bg-slate-950 hover:bg-slate-850 p-2 border border-slate-800 text-slate-300 rounded-xl font-bold font-mono cursor-pointer transition-all active:scale-95"
+                      title="To'lovlar hisobotini CSV formatida yuklash"
+                    >
+                      CSV
+                    </button>
                   </div>
                 </div>
 

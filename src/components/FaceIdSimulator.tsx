@@ -592,7 +592,8 @@ export default function FaceIdSimulator({ childrenList, onScanComplete }: FaceId
           childId: selectedChildId,
           password,
           checkoutPersonName: isExit ? checkoutPersonName : null,
-          checkoutPhoto: isExit ? photoToSubmit : null,
+          checkoutPhoto: photoToSubmit,
+          imageFrame: photoToSubmit,
           temperature, // Transmit temperature reading
         }),
       });
@@ -914,7 +915,8 @@ export default function FaceIdSimulator({ childrenList, onScanComplete }: FaceId
           childId: selectedChildId,
           password,
           checkoutPersonName: isExit ? checkoutPersonName : null,
-          checkoutPhoto: isExit ? photoToSubmit : null,
+          checkoutPhoto: photoToSubmit,
+          imageFrame: photoToSubmit,
           temperature, // Transmit temperature reading
         }),
       });

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { User } from "../types";
 
 export interface TelegramUser {
@@ -16,6 +16,12 @@ export function useTelegramWebApp(onAutoLogin: (user: User) => void) {
   const [initData, setInitData] = useState<string>("");
   const [themeParams, setThemeParams] = useState<any>(null);
 
+  // Use a ref to store the latest callback to prevent infinite re-rendering loops
+  const onAutoLoginRef = React.useRef(onAutoLogin);
+  React.useEffect(() => {
+    onAutoLoginRef.current = onAutoLogin;
+  }, [onAutoLogin]);
+
   useEffect(() => {
     // Check if running inside Telegram WebApp
     const webApp = (window as any).Telegram?.WebApp;
@@ -31,7 +37,7 @@ export function useTelegramWebApp(onAutoLogin: (user: User) => void) {
         console.log("Telegram user identified:", user);
         
         // Attempt automatic session retrieval/login based on Telegram Chat ID
-        fetch("/api/auth/telegram-login", {
+        fetch("/api/telegram-login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ chatId: String(user.id) }),
@@ -43,7 +49,10 @@ export function useTelegramWebApp(onAutoLogin: (user: User) => void) {
           .then((data) => {
             if (data.success && data.user) {
               console.log("Telegram WebApp: Auto-logged in successfully as", data.user.name);
-              onAutoLogin(data.user);
+              if (data.token) {
+                localStorage.setItem("authToken", data.token);
+              }
+              onAutoLoginRef.current(data.user);
             }
           })
           .catch((err) => {
@@ -67,7 +76,7 @@ export function useTelegramWebApp(onAutoLogin: (user: User) => void) {
         console.warn("Error setting Telegram WebApp theme/view properties:", err);
       }
     }
-  }, [onAutoLogin]);
+  }, []); // Run strictly once on mount to prevent infinite fetch loop
 
   return {
     isTelegramWebApp,
