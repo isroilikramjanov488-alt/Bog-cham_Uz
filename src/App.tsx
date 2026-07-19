@@ -112,15 +112,20 @@ export default function App() {
             localStorage.setItem("currentUser", JSON.stringify(data.user));
           }
         } else {
-          console.warn("[Session] Token is invalid or expired. Logging out.");
-          localStorage.removeItem("authToken");
-          localStorage.removeItem("currentUser");
-          apiCache.clear();
-          setCurrentUser(null);
+          // Only force logout if the token is explicitly rejected (401 Unauthorized or 403 Forbidden)
+          if (res.status === 401 || res.status === 403) {
+            console.warn("[Session] Token is invalid or expired. Logging out.");
+            localStorage.removeItem("authToken");
+            localStorage.removeItem("currentUser");
+            apiCache.clear();
+            setCurrentUser(null);
+          } else {
+            console.warn("[Session] Server returned non-ok status but not 401/403. Retaining session for offline resilience:", res.status);
+          }
         }
       } catch (err) {
         console.error("[Session] Verification failed:", err);
-        // On network failure, we still keep the localStorage/decoded user to support offline/resilience
+        // On network/timeout errors (e.g. Render spin-up), retain the cached user to prevent unwanted logout
       } finally {
         setCheckingSession(false);
       }
@@ -137,50 +142,72 @@ export default function App() {
     }
   }, [currentUser]);
 
+  // Global window.fetch Interceptor & Silent 2-second Keep-Alive Cron
   useEffect(() => {
-    if (!currentUser) return;
-    
     const originalFetch = window.fetch;
     let isPatched = false;
 
-    try {
-      const customFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-        const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
-        
-        if (url.includes('/api/')) {
-          const newInit = { ...(init || {}) };
-          const headers = new Headers(newInit.headers || {});
-          if (currentUser.kindergartenId && !headers.has('x-kindergarten-id')) {
-            headers.set('x-kindergarten-id', currentUser.kindergartenId);
-          }
-          
-          // Inject stored Authorization Bearer JWT token if available
-          const token = localStorage.getItem("authToken");
-          if (token && !headers.has('Authorization') && !headers.has('authorization')) {
-            headers.set('Authorization', `Bearer ${token}`);
-          }
-          
-          newInit.headers = headers;
-          return originalFetch(input, newInit);
-        }
-        
-        return originalFetch(input, init);
-      };
-
-      try {
-        window.fetch = customFetch;
-        isPatched = true;
-      } catch (e) {
-        Object.defineProperty(window, 'fetch', {
-          value: customFetch,
-          writable: true,
-          configurable: true
-        });
-        isPatched = true;
+    const customFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      let url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      
+      // Rewrite relative API URLs to point to Render production backend when not in local/preview env
+      if (url.startsWith('/api/')) {
+        const apiBase = window.location.hostname === "localhost" || window.location.hostname.includes("ais-")
+          ? ""
+          : "https://bogcham-uz.onrender.com";
+        url = `${apiBase}${url}`;
+        input = url;
       }
+
+      const newInit = { ...(init || {}) };
+      const headers = new Headers(newInit.headers || {});
+      
+      // Lazily fetch and attach kindergarten ID from stored user
+      const storedUser = localStorage.getItem("currentUser");
+      if (storedUser) {
+        try {
+          const parsed = JSON.parse(storedUser);
+          if (parsed?.kindergartenId && !headers.has('x-kindergarten-id')) {
+            headers.set('x-kindergarten-id', parsed.kindergartenId);
+          }
+        } catch (e) {}
+      }
+      
+      // Automatically attach Authorization JWT token if available
+      const token = localStorage.getItem("authToken");
+      if (token && !headers.has('Authorization') && !headers.has('authorization')) {
+        headers.set('Authorization', `Bearer ${token}`);
+      }
+      
+      newInit.headers = headers;
+      return originalFetch(input, newInit);
+    };
+
+    try {
+      window.fetch = customFetch;
+      isPatched = true;
     } catch (err) {
-      console.warn("[App] Failed to intercept window.fetch globally due to environment constraints:", err);
+      Object.defineProperty(window, 'fetch', {
+        value: customFetch,
+        writable: true,
+        configurable: true
+      });
+      isPatched = true;
     }
+
+    // Silent background keep-alive ping every 2 seconds
+    // Resolves to the correct base URL and pings /api/health to prevent Render spin-down.
+    // Does not update React states or cause any page refreshes or re-renders.
+    const keepAliveInterval = setInterval(() => {
+      const apiBase = window.location.hostname === "localhost" || window.location.hostname.includes("ais-")
+        ? ""
+        : "https://bogcham-uz.onrender.com";
+      
+      originalFetch(`${apiBase}/api/health`, { method: "GET" })
+        .catch(() => {
+          // Completely silent catch to avoid console noise during transient disconnects
+        });
+    }, 2000);
 
     return () => {
       if (isPatched) {
@@ -193,13 +220,12 @@ export default function App() {
               writable: true,
               configurable: true
             });
-          } catch (err) {
-            // ignore
-          }
+          } catch (err) {}
         }
       }
+      clearInterval(keepAliveInterval);
     };
-  }, [currentUser]);
+  }, []);
 
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isTelegramModalOpen, setIsTelegramModalOpen] = useState(false);
